@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+
+  /* 🔥 MÀU CHÍNH XANH */
+  --primary: 200 90% 50%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+
+  --accent: 200 90% 96%;
+  --accent-foreground: 200 90% 40%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 200 90% 50%;
+
+  --radius: 0.75rem;
+}
+
+/* ❌ bỏ nền tím */
+body {
+  @apply bg-[#f8fbff] text-slate-900;
+}
+
+* {
+  @apply border-border;
+}
+@layer components {
+  .app-shell {
+    @apply min-h-screen bg-[#f8fbff];
+  }
+
+  .app-card {
+    @apply bg-white border border-slate-200 rounded-xl shadow-sm;
+  }
+
+  .app-input {
+    @apply h-11 rounded-lg border border-slate-200 bg-white px-4 text-sm outline-none;
+  }
+
+  .app-input:focus {
+    @apply ring-2 ring-sky-400 border-sky-400;
+  }
+
+  .app-btn {
+    @apply inline-flex items-center justify-center rounded-lg bg-sky-500 px-4 py-2 text-white font-medium transition hover:bg-sky-600;
+  }
+
+  .app-btn-outline {
+    @apply inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50;
+  }
+
+  .app-sidebar-item {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-slate-700 hover:bg-sky-50 hover:text-sky-600;
+  }
+
+  .app-sidebar-active {
+    @apply bg-sky-500 text-white;
+  }
+
+  .status {
+    @apply inline-flex px-3 py-1 text-xs rounded-full;
+  }
+
+  .status-processing {
+    @apply bg-sky-100 text-sky-600;
+  }
+
+  .status-success {
+    @apply bg-emerald-100 text-emerald-600;
+  }
+
+  .status-danger {
+    @apply bg-red-100 text-red-600;
+  }
+}
