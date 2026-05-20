@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Search,
   Eye,
@@ -13,6 +13,11 @@ import {
 } from "lucide-react";
 import DatePicker from "@/components/ui/date-picker";
 import { useAppAction } from "@/components/app-action-provider";
+import {
+  getAdminOrders,
+  updateAdminOrderStatus,
+  type AdminRecentOrderResponse,
+} from "@/lib/api-client";
 
 type OrderStatus =
   | "processing"
@@ -31,6 +36,21 @@ type Order = {
   transferImage?: string;
 };
 
+function formatCurrency(value: number) {
+  return `${Math.round(value).toLocaleString("vi-VN")} đ`;
+}
+
+function mapApiOrder(order: AdminRecentOrderResponse): Order {
+  return {
+    id: order.id,
+    code: order.trackingCode,
+    customer: order.customerName,
+    total: formatCurrency(order.totalAmount),
+    status: order.status === "pending" ? "unpaid" : (order.status as OrderStatus),
+    createdAt: order.createdAt,
+  };
+}
+
 const statusOptions: { value: "all" | OrderStatus; label: string }[] = [
   { value: "all", label: "Tất cả trạng thái" },
   { value: "processing", label: "Đang xử lý" },
@@ -47,68 +67,6 @@ const editableStatusOptions: { value: OrderStatus; label: string }[] = [
   { value: "completed", label: "Đã giao hàng" },
   { value: "cancelled", label: "Đã hủy" },
 ];
-
-const initialOrders: Order[] = [
-  {
-    id: 1,
-    code: "#DH10086",
-    customer: "Nguyễn Văn A",
-    total: "2,350,000 đ",
-    status: "processing",
-    createdAt: "2024-05-24 10:30",
-  },
-  {
-    id: 2,
-    code: "#DH10085",
-    customer: "Trần Thị B",
-    total: "1,850,000 đ",
-    status: "unpaid",
-    createdAt: "2024-05-24 09:15",
-    transferImage:
-      "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=900&auto=format&fit=crop",
-  },
-  {
-    id: 3,
-    code: "#DH10084",
-    customer: "Lê Văn C",
-    total: "3,450,000 đ",
-    status: "completed",
-    createdAt: "2024-05-23 16:45",
-  },
-  {
-    id: 4,
-    code: "#DH10083",
-    customer: "Phạm Thị D",
-    total: "950,000 đ",
-    status: "cancelled",
-    createdAt: "2024-05-23 14:20",
-  },
-  {
-    id: 5,
-    code: "#DH10082",
-    customer: "Hoàng Văn E",
-    total: "1,250,000 đ",
-    status: "shipping",
-    createdAt: "2024-05-23 11:05",
-  },
-  {
-    id: 6,
-    code: "#DH10081",
-    customer: "Nguyễn Thị F",
-    total: "2,750,000 đ",
-    status: "completed",
-    createdAt: "2024-05-22 18:30",
-  },
-];
-
-function formatDateTime(value: string) {
-  const date = new Date(value);
-  const pad = (n: number) => String(n).padStart(2, "0");
-
-  return `${pad(date.getDate())}/${pad(
-    date.getMonth() + 1
-  )}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 function TransferImageModal({
   order,
@@ -219,7 +177,8 @@ function TransferImageModal({
 
 export default function AdminOrdersPage() {
   const { isBlocking, runAction } = useAppAction();
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | OrderStatus>("all");
   const [openStatusDropdown, setOpenStatusDropdown] = useState(false);
@@ -235,6 +194,22 @@ export default function AdminOrdersPage() {
   const [previewImage, setPreviewImage] = useState("");
 
   const pageSize = 6;
+
+  useEffect(() => {
+    let mounted = true;
+    setIsLoading(true);
+    getAdminOrders()
+      .then((items) => {
+        if (mounted) setOrders(items.map(mapApiOrder));
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -267,19 +242,14 @@ export default function AdminOrdersPage() {
   const handleSaveStatuses = async () => {
     if (!hasEditedStatus || isBlocking) return;
 
-    await runAction(() => {
-      setOrders((prev) =>
-        prev.map((order) => ({
-          ...order,
-          status: editedStatuses[order.id] ?? order.status,
-        }))
+    await runAction(async () => {
+      const updatedOrders = await Promise.all(
+        Object.entries(editedStatuses).map(([id, nextStatus]) =>
+          updateAdminOrderStatus(Number(id), nextStatus)
+        )
       );
-
-      console.log("SAVE_ORDER_STATUSES", editedStatuses);
-
-      // TODO: Sau này gọi API update trạng thái ở đây
-      // await updateOrderStatuses(editedStatuses)
-
+      const byId = new Map(updatedOrders.map((order) => [order.id, mapApiOrder(order)]));
+      setOrders((prev) => prev.map((order) => byId.get(order.id) ?? order));
       setEditedStatuses({});
     }, {
       loadingMessage: "Đang cập nhật đơn hàng...",
@@ -621,3 +591,7 @@ export default function AdminOrdersPage() {
     </>
   );
 }
+
+
+
+

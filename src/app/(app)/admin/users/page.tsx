@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Search,
   Eye,
@@ -18,6 +18,12 @@ import {
 } from "lucide-react";
 import DatePicker from "@/components/ui/date-picker";
 import { useAppAction } from "@/components/app-action-provider";
+import {
+  deleteAdminUser,
+  getAdminUsers,
+  updateAdminUserStatus,
+  type AdminUserResponse,
+} from "@/lib/api-client";
 
 type UserStatus = "active" | "locked";
 
@@ -30,132 +36,8 @@ type UserItem = {
   role: "staff";
   status: UserStatus;
   createdAt: string;
-  avatar: string;
+  avatar?: string;
 };
-
-const mockUsers: UserItem[] = [
-  {
-    id: 1,
-    code: "#USR1001",
-    name: "Nguyễn Văn A",
-    email: "nguyenvana@gmail.com",
-    phone: "0987654321",
-    role: "staff",
-    status: "active",
-    createdAt: "24/05/2024 10:30",
-    avatar: "https://i.pravatar.cc/80?img=12",
-  },
-  {
-    id: 2,
-    code: "#USR1002",
-    name: "Trần Thị B",
-    email: "tranthib@gmail.com",
-    phone: "0978123456",
-    role: "staff",
-    status: "active",
-    createdAt: "23/05/2024 09:15",
-    avatar: "https://i.pravatar.cc/80?img=47",
-  },
-  {
-    id: 3,
-    code: "#USR1003",
-    name: "Lê Văn C",
-    email: "levanc@gmail.com",
-    phone: "0967458123",
-    role: "staff",
-    status: "active",
-    createdAt: "22/05/2024 16:45",
-    avatar: "https://i.pravatar.cc/80?img=15",
-  },
-  {
-    id: 4,
-    code: "#USR1004",
-    name: "Phạm Thị D",
-    email: "phamthid@gmail.com",
-    phone: "0934125678",
-    role: "staff",
-    status: "locked",
-    createdAt: "21/05/2024 14:20",
-    avatar: "https://i.pravatar.cc/80?img=32",
-  },
-  {
-    id: 5,
-    code: "#USR1005",
-    name: "Hoàng Văn E",
-    email: "hoangvane@gmail.com",
-    phone: "0912345678",
-    role: "staff",
-    status: "active",
-    createdAt: "20/05/2024 11:05",
-    avatar: "https://i.pravatar.cc/80?img=18",
-  },
-  {
-    id: 6,
-    code: "#USR1006",
-    name: "Đỗ Minh F",
-    email: "dominhsf@gmail.com",
-    phone: "0901122334",
-    role: "staff",
-    status: "active",
-    createdAt: "19/05/2024 08:30",
-    avatar: "https://i.pravatar.cc/80?img=20",
-  },
-  {
-    id: 7,
-    code: "#USR1007",
-    name: "Vũ Thị G",
-    email: "vuthig@gmail.com",
-    phone: "0988111222",
-    role: "staff",
-    status: "active",
-    createdAt: "18/05/2024 13:20",
-    avatar: "https://i.pravatar.cc/80?img=25",
-  },
-  {
-    id: 8,
-    code: "#USR1008",
-    name: "Ngô Văn H",
-    email: "ngovanh@gmail.com",
-    phone: "0977333444",
-    role: "staff",
-    status: "locked",
-    createdAt: "17/05/2024 09:40",
-    avatar: "https://i.pravatar.cc/80?img=30",
-  },
-  {
-    id: 9,
-    code: "#USR1009",
-    name: "Bùi Thị I",
-    email: "buithii@gmail.com",
-    phone: "0966555666",
-    role: "staff",
-    status: "active",
-    createdAt: "16/05/2024 16:10",
-    avatar: "https://i.pravatar.cc/80?img=35",
-  },
-  {
-    id: 10,
-    code: "#USR1010",
-    name: "Phan Văn K",
-    email: "phanvank@gmail.com",
-    phone: "0955444333",
-    role: "staff",
-    status: "active",
-    createdAt: "15/05/2024 11:45",
-    avatar: "https://i.pravatar.cc/80?img=40",
-  },
-  {
-    id: 11,
-    code: "#USR1011",
-    name: "Lý Thị L",
-    email: "lythil@gmail.com",
-    phone: "0944333222",
-    role: "staff",
-    status: "active",
-    createdAt: "14/05/2024 15:30",
-    avatar: "https://i.pravatar.cc/80?img=45",
-  },
-];
 
 const statusOptions = [
   { value: "all", label: "Tất cả trạng thái" },
@@ -171,6 +53,31 @@ function formatDate(date?: Date) {
   const year = date.getFullYear();
 
   return `${day}/${month}/${year}`;
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function mapApiUser(user: AdminUserResponse): UserItem {
+  return {
+    id: user.id,
+    code: user.code,
+    name: user.name,
+    email: user.email,
+    phone: user.phone || "-",
+    role: "staff",
+    status: user.status === "locked" ? "locked" : "active",
+    createdAt: formatDateTime(user.createdAt),
+  };
 }
 
 function StatCard({
@@ -269,11 +176,9 @@ function UserDetailModal({
 
         <div className="px-6 py-5">
           <div className="mb-5 flex items-center gap-4">
-            <img
-              src={user.avatar}
-              alt={user.name}
-              className="h-16 w-16 rounded-full object-cover"
-            />
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-50 text-lg font-bold text-sky-600">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
             <div>
               <h4 className="text-lg font-bold text-slate-900">{user.name}</h4>
               <p className="text-sm text-slate-500">{user.email}</p>
@@ -345,7 +250,8 @@ function UserDetailModal({
 
 export default function AdminUsersPage() {
   const { isBlocking, runAction } = useAppAction();
-  const [users, setUsers] = useState<UserItem[]>(mockUsers);
+  const [users, setUsers] = useState<UserItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [createdDate, setCreatedDate] = useState<Date | undefined>();
@@ -356,6 +262,23 @@ export default function AdminUsersPage() {
   >({});
 
   const pageSize = 10;
+
+  useEffect(() => {
+    let mounted = true;
+    setIsLoading(true);
+
+    getAdminUsers()
+      .then((items) => {
+        if (mounted) setUsers(items.map(mapApiUser));
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
@@ -394,24 +317,32 @@ export default function AdminUsersPage() {
   const handleSaveStatuses = async () => {
     if (!hasEditedStatus || isBlocking) return;
 
-    await runAction(() => {
-      setUsers((prev) =>
-        prev.map((user) => ({
-          ...user,
-          status: editedStatuses[user.id] ?? user.status,
-        }))
+    await runAction(async () => {
+      const updatedUsers = await Promise.all(
+        Object.entries(editedStatuses).map(([id, nextStatus]) =>
+          updateAdminUserStatus(Number(id), nextStatus === "active")
+        )
       );
-
-      console.log("SAVE_USER_STATUSES", editedStatuses);
-
-      // TODO: Sau này gọi API lưu trạng thái ở đây
-      // await updateUserStatuses(editedStatuses)
-
+      const byId = new Map(updatedUsers.map((user) => [user.id, mapApiUser(user)]));
+      setUsers((prev) => prev.map((user) => byId.get(user.id) ?? user));
       setEditedStatuses({});
     }, {
       loadingMessage: "Đang cập nhật người dùng...",
       successTitle: "Cập nhật thành công",
       successDescription: "Trạng thái người dùng đã được lưu.",
+    });
+  };
+
+  const handleDeleteUser = async (userId: number) => {
+    if (isBlocking) return;
+
+    await runAction(async () => {
+      await deleteAdminUser(userId);
+      setUsers((prev) => prev.filter((user) => user.id !== userId));
+    }, {
+      loadingMessage: "Đang xóa người dùng...",
+      successTitle: "Đã xóa người dùng",
+      successDescription: "Dữ liệu người dùng đã được xóa khỏi database.",
     });
   };
 
@@ -449,7 +380,7 @@ export default function AdminUsersPage() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             title="Tổng người dùng"
-            value="1,256"
+            value={String(users.length)}
             change="+12.5%"
             icon={<Users className="h-6 w-6 text-sky-500" />}
             iconClass="bg-sky-50"
@@ -593,11 +524,9 @@ export default function AdminUsersPage() {
 
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <img
-                            src={user.avatar}
-                            alt={user.name}
-                            className="h-8 w-8 rounded-full object-cover"
-                          />
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-50 text-xs font-bold text-sky-600">
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
                           <span className="font-medium text-slate-700">
                             {user.name}
                           </span>
@@ -648,7 +577,10 @@ export default function AdminUsersPage() {
                             <Lock className="h-4 w-4" />
                           </button>
 
-                          <button className="text-rose-500 transition hover:text-rose-600">
+                          <button
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="text-rose-500 transition hover:text-rose-600"
+                          >
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -657,7 +589,18 @@ export default function AdminUsersPage() {
                   );
                 })}
 
-                {data.length === 0 && (
+                {isLoading && (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className="px-4 py-10 text-center text-slate-400"
+                    >
+                      Đang tải dữ liệu...
+                    </td>
+                  </tr>
+                )}
+
+                {!isLoading && data.length === 0 && (
                   <tr>
                     <td
                       colSpan={9}
@@ -675,7 +618,7 @@ export default function AdminUsersPage() {
             <p className="text-sm text-slate-500">
               Hiển thị{" "}
               {filteredUsers.length === 0 ? 0 : (page - 1) * pageSize + 1} đến{" "}
-              {Math.min(page * pageSize, filteredUsers.length)} của 1,256 người
+              {Math.min(page * pageSize, filteredUsers.length)} của {filteredUsers.length} người
               dùng
             </p>
 
@@ -734,3 +677,6 @@ export default function AdminUsersPage() {
     </>
   );
 }
+
+
+

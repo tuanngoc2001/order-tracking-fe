@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   ChevronDown,
@@ -12,6 +12,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useAppAction } from "@/components/app-action-provider";
+import { getMmoAccounts, getMmoProxies } from "@/lib/api-client";
 
 type PlatformType = "tiktok" | "shopee";
 type AccountStatus = "active" | "warning" | "locked";
@@ -31,128 +32,17 @@ type ExportRow = {
   note: string;
 };
 
-const mockRows: ExportRow[] = [
-  {
-    id: 1,
-    platform: "tiktok",
-    account: "nguyenvana.tiktok",
-    password: "12345678",
-    email: "nguyenvana@gmail.com",
-    proxy: "103.162.4.23:8080",
-    status: "active",
-    createdAt: "20/06/2024 10:30",
-    lockedDays: "-",
-    note: "TikTok - acc 01",
-  },
-  {
-    id: 2,
-    platform: "tiktok",
-    account: "tranthib.tiktok",
-    password: "12345678",
-    email: "tranthib@gmail.com",
-    proxy: "103.162.4.24:8080",
-    status: "active",
-    createdAt: "19/06/2024 14:20",
-    lockedDays: "-",
-    note: "-",
-  },
-  {
-    id: 3,
-    platform: "tiktok",
-    account: "levanc.tiktok",
-    password: "12345678",
-    email: "levanc@gmail.com",
-    proxy: "103.162.4.25:8080",
-    status: "warning",
-    createdAt: "18/06/2024 09:15",
-    lockedDays: "3 ngày",
-    note: "-",
-  },
-  {
-    id: 4,
-    platform: "tiktok",
-    account: "phamthid.tiktok",
-    password: "12345678",
-    email: "phamthid@gmail.com",
-    proxy: "103.162.4.26:8080",
-    status: "active",
-    createdAt: "17/06/2024 16:45",
-    lockedDays: "-",
-    note: "TikTok - acc 02",
-  },
-  {
-    id: 5,
-    platform: "tiktok",
-    account: "dothif.tiktok",
-    password: "12345678",
-    email: "dothif@gmail.com",
-    proxy: "103.162.4.27:8080",
-    status: "active",
-    createdAt: "16/06/2024 11:30",
-    lockedDays: "-",
-    note: "-",
-  },
-  {
-    id: 6,
-    platform: "tiktok",
-    account: "vuving.tiktok",
-    password: "12345678",
-    email: "vuving@gmail.com",
-    proxy: "103.162.4.28:8080",
-    status: "locked",
-    createdAt: "15/06/2024 10:10",
-    lockedDays: "7 ngày",
-    note: "-",
-  },
-  {
-    id: 7,
-    platform: "tiktok",
-    account: "hoangnam.tiktok",
-    password: "12345678",
-    email: "hoangnam@gmail.com",
-    proxy: "-",
-    status: "locked",
-    createdAt: "14/06/2024 13:10",
-    lockedDays: "15 ngày",
-    note: "-",
-  },
-  {
-    id: 8,
-    platform: "tiktok",
-    account: "thoorny.tiktok",
-    password: "12345678",
-    email: "thoorny@gmail.com",
-    proxy: "-",
-    status: "warning",
-    createdAt: "12/06/2024 09:40",
-    lockedDays: "2 ngày",
-    note: "-",
-  },
-  {
-    id: 9,
-    platform: "tiktok",
-    account: "ducanh.tiktok",
-    password: "12345678",
-    email: "ducanh@gmail.com",
-    proxy: "103.162.4.29:8080",
-    status: "active",
-    createdAt: "12/06/2024 08:20",
-    lockedDays: "-",
-    note: "-",
-  },
-  {
-    id: 10,
-    platform: "tiktok",
-    account: "minhkhang.tiktok",
-    password: "12345678",
-    email: "minhkhang@gmail.com",
-    proxy: "-",
-    status: "active",
-    createdAt: "10/06/2024 15:30",
-    lockedDays: "-",
-    note: "-",
-  },
-];
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 const fieldOptions = [
   { key: "account", label: "Tài khoản" },
@@ -236,6 +126,8 @@ function FormatCard({
 
 export default function AdminExportPage() {
   const { isBlocking, runAction } = useAppAction();
+  const [rows, setRows] = useState<ExportRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [dataType, setDataType] = useState("all");
   const [status, setStatus] = useState("all");
   const [platform, setPlatform] = useState("all");
@@ -250,13 +142,54 @@ export default function AdminExportPage() {
     }, {} as Record<string, boolean>)
   );
 
+  useEffect(() => {
+    let mounted = true;
+    setIsLoading(true);
+    Promise.all([getMmoAccounts(), getMmoProxies()])
+      .then(([accounts, proxies]) => {
+        if (!mounted) return;
+        const accountRows: ExportRow[] = accounts.map((item) => ({
+          id: item.id,
+          platform: item.platform === "shopee" ? "shopee" : "tiktok",
+          account: item.account,
+          password: item.password,
+          email: item.email,
+          proxy: item.proxy || "-",
+          status: item.status === "locked" || item.status === "warning" ? item.status : "active",
+          createdAt: formatDateTime(item.createdAt),
+          lockedDays: item.lockedDays || "-",
+          note: item.note || "-",
+        }));
+        const proxyRows: ExportRow[] = proxies.map((item) => ({
+          id: Number(`9${item.id}`),
+          platform: "tiktok",
+          account: `${item.ip}:${item.port}`,
+          password: item.password || "",
+          email: item.username,
+          proxy: `${item.ip}:${item.port}`,
+          status: item.status === "error" || item.status === "expired" ? "locked" : "active",
+          createdAt: formatDateTime(item.createdAt),
+          lockedDays: item.expiredDate || "-",
+          note: item.note || "-",
+        }));
+        setRows(dataType === "proxy" ? proxyRows : dataType === "account" ? accountRows : [...accountRows, ...proxyRows]);
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [dataType]);
+
   const filteredRows = useMemo(() => {
-    return mockRows.filter((row) => {
+    return rows.filter((row) => {
       const matchStatus = status === "all" || row.status === status;
       const matchPlatform = platform === "all" || row.platform === platform;
       return matchStatus && matchPlatform;
     });
-  }, [status, platform]);
+  }, [rows, status, platform]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
 
@@ -463,7 +396,7 @@ export default function AdminExportPage() {
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500">Tổng bản ghi</span>
-                  <span className="font-bold text-slate-800">126</span>
+                  <span className="font-bold text-slate-800">{rows.length}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -553,6 +486,20 @@ export default function AdminExportPage() {
                   <td className="px-4 py-4 text-slate-600">{row.note}</td>
                 </tr>
               ))}
+              {isLoading && (
+                <tr>
+                  <td colSpan={10} className="px-4 py-10 text-center text-slate-400">
+                    Đang tải dữ liệu...
+                  </td>
+                </tr>
+              )}
+              {!isLoading && pagedRows.length === 0 && (
+                <tr>
+                  <td colSpan={10} className="px-4 py-10 text-center text-slate-400">
+                    Không có dữ liệu phù hợp.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -626,3 +573,4 @@ export default function AdminExportPage() {
     </div>
   );
 }
+

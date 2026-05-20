@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -33,10 +33,13 @@ import {
   ShoppingCart,
   Users,
   Globe,
+  HandCoins,
 } from "lucide-react";
 import { clearAuthSession, getAuthSession } from "@/lib/auth-client";
 import { ROUTE_TRANSITION_SENTINEL, useAppAction } from "@/components/app-action-provider";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { UserCoinBalanceLabel, WalletWithdrawDialog } from "@/components/wallet-withdraw-dialog";
+import { getAdminDashboard } from "@/lib/api-client";
 
 type AvatarItem = {
   id: string;
@@ -60,23 +63,11 @@ const PLACEHOLDER_IMAGES: AvatarItem[] = [
   },
 ];
 
-const mockNotifications = [
-  {
-    id: 1,
-    title: "Đơn hàng mới",
-    description: "Có 3 đơn hàng vừa được tạo trong 10 phút qua.",
-  },
-  {
-    id: 2,
-    title: "Yêu cầu hỗ trợ",
-    description: "1 ticket mới từ người dùng cần được phản hồi.",
-  },
-  {
-    id: 3,
-    title: "Báo cáo doanh thu",
-    description: "Dữ liệu doanh thu hôm nay đã được cập nhật.",
-  },
-];
+type NotificationItem = {
+  id: string;
+  title: string;
+  description: string;
+};
 
 function useRouteBlocker() {
   const pathname = usePathname();
@@ -115,7 +106,7 @@ export function AppLogo() {
       </div>
 
       <div className="flex flex-col leading-none">
-        <span className="text-base font-bold tracking-tight text-sky-600 md:text-lg">
+        <span className="text-sm font-bold tracking-tight text-sky-600 md:text-lg">
           QUANLYVANDON
         </span>
         <span className="hidden text-[11px] text-slate-400 md:block">
@@ -274,6 +265,7 @@ export function AppHeader() {
   const isAdmin = pathname.startsWith("/admin");
   const { toggleSidebar } = useSidebar();
   const session = getAuthSession();
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const getAvatar = (id: string) =>
     PLACEHOLDER_IMAGES.find((img) => img.id === id);
@@ -283,18 +275,46 @@ export function AppHeader() {
   const userRole = session?.role === "admin" ? "Admin" : "User";
   const avatar = getAvatar(userAvatarId);
 
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    let mounted = true;
+    getAdminDashboard()
+      .then((dashboard) => {
+        if (!mounted) return;
+        setNotifications(
+          dashboard.recentOrders.slice(0, 5).map((order) => ({
+            id: `order-${order.id}`,
+            title: `Đơn ${order.trackingCode}`,
+            description: `${order.customerName} - ${order.status}`,
+          }))
+        );
+      })
+      .catch(() => {
+        if (mounted) setNotifications([]);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [isAdmin]);
+
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur md:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-slate-200 bg-white/95 px-3 backdrop-blur md:gap-3 md:px-6">
       <Button
         variant="outline"
         size="icon"
         onClick={toggleSidebar}
-        className="rounded-xl border-slate-200 bg-white md:rounded-lg"
+        className="h-10 w-10 shrink-0 rounded-xl border-slate-200 bg-white md:rounded-lg"
       >
         <Menu className="h-4 w-4" />
       </Button>
 
-      <div className="flex-1">
+      <div className="flex min-w-0 flex-1 items-center md:hidden">
+        <AppLogo />
+      </div>
+
+      <div className="hidden min-w-0 flex-1 md:block">
         <div className="relative max-w-xl">
           <input
             className="h-10 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100 md:h-11 md:rounded-xl"
@@ -307,7 +327,9 @@ export function AppHeader() {
         </div>
       </div>
 
-      <div className="ml-auto flex items-center gap-2 md:gap-3">
+      <div className="ml-auto flex shrink-0 items-center gap-1.5 md:gap-3">
+        <ThemeToggle variant="inline" className="shrink-0 rounded-full" />
+
         {isAdmin && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -317,7 +339,9 @@ export function AppHeader() {
                 className="relative hidden rounded-full border-slate-200 bg-white hover:bg-sky-50 md:inline-flex"
               >
                 <Bell className="h-4 w-4 text-slate-600" />
-                <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-red-500" />
+                {notifications.length > 0 && (
+                  <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-red-500" />
+                )}
               </Button>
             </DropdownMenuTrigger>
 
@@ -327,7 +351,7 @@ export function AppHeader() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
 
-              {mockNotifications.map((notification) => (
+              {notifications.map((notification) => (
                 <DropdownMenuItem
                   key={notification.id}
                   className="flex cursor-pointer flex-col items-start rounded-lg px-3 py-3 focus:bg-sky-50"
@@ -340,48 +364,43 @@ export function AppHeader() {
                   </span>
                 </DropdownMenuItem>
               ))}
+              {notifications.length === 0 && (
+                <DropdownMenuItem className="cursor-default rounded-lg px-3 py-3 text-sm text-slate-500">
+                  Chưa có thông báo mới.
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
 
-        {isUser && <WalletWithdrawDialog />}
+        {isUser && (
+          <div className="flex items-center gap-1.5">
+            <div className="hidden rounded-xl border border-sky-100 bg-sky-50 px-2.5 py-2 sm:block md:hidden">
+              <UserCoinBalanceLabel />
+            </div>
+            <WalletWithdrawDialog />
+          </div>
+        )}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-1.5 py-1.5 transition hover:bg-slate-50 md:gap-3 md:rounded-xl md:px-2">
-              <Avatar className="h-9 w-9 md:h-9 md:w-9">
-                {avatar && (
-                  <AvatarImage
-                    src={avatar.imageUrl}
-                    alt={avatar.description}
-                    data-ai-hint={avatar.imageHint}
-                  />
-                )}
-                <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
-              </Avatar>
+        <div className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-1.5 md:h-auto md:gap-3 md:px-2 md:py-1.5">
+          <Avatar className="h-8 w-8 md:h-9 md:w-9">
+            {avatar && (
+              <AvatarImage
+                src={avatar.imageUrl}
+                alt={avatar.description}
+                data-ai-hint={avatar.imageHint}
+              />
+            )}
+            <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
+          </Avatar>
 
-              <div className="hidden text-left md:block">
-                <p className="text-sm font-semibold text-slate-800">{userName}</p>
-                <p className="text-xs text-slate-400">
-                  {isUser ? <UserCoinBalanceLabel /> : userRole}
-                </p>
-              </div>
-            </button>
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>{userName}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-
-            <DropdownMenuItem asChild>
-              <Link href={isAdmin ? "/admin/settings" : "/user/profile"}>
-                Cài đặt tài khoản
-              </Link>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem>Hỗ trợ</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          <div className="hidden text-left md:block">
+            <p className="text-sm font-semibold text-slate-800">{userName}</p>
+            <p className="text-xs text-slate-400">
+              {isUser ? <UserCoinBalanceLabel /> : userRole}
+            </p>
+          </div>
+        </div>
       </div>
     </header>
   );
@@ -405,6 +424,7 @@ export function MobileBottomNav() {
     ? [
         { href: "/user/home", label: "Trang chủ", icon: House },
         { href: "/user/orders", label: "Đơn hàng", icon: PackageCheck },
+        { href: "/user/commission", label: "Xu", icon: HandCoins },
         { href: "/user/stats", label: "Thống kê", icon: BarChart2 },
         { href: "/user/profile", label: "Cài đặt", icon: Settings },
       ]
@@ -422,7 +442,10 @@ export function MobileBottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
-      <div className="grid grid-cols-4 gap-2 rounded-2xl bg-slate-50/90 p-1.5">
+      <div
+        className="grid gap-1.5 rounded-2xl bg-slate-50/90 p-1.5"
+        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      >
         {items.map((item) => {
           const active = item.active ?? (item.href ? pathname === item.href : false);
           const content = (

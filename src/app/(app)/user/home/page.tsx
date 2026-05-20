@@ -9,10 +9,10 @@ import { getTaskPosts, getUserDashboard, type TaskResponse, type UserDashboardRe
 
 function StatCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-500">{icon}</div>
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:rounded-2xl md:p-5">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-500 md:mb-4 md:h-11 md:w-11">{icon}</div>
       <p className="text-sm text-slate-500">{title}</p>
-      <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
+      <p className="mt-1 break-words text-xl font-bold text-slate-900 md:text-2xl">{value}</p>
     </div>
   );
 }
@@ -54,13 +54,13 @@ export default function UserHomePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Trang chủ</h1>
+        <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">Trang chủ</h1>
         <p className="mt-1 text-sm text-slate-500">Tổng quan vận đơn và nhiệm vụ bạn có thể làm.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
         <StatCard title="Tổng đơn hàng" value={String(dashboard?.totalOrders ?? 0)} icon={<Package className="h-5 w-5" />} />
         <StatCard title="Đang giao" value={String(dashboard?.shippingOrders ?? 0)} icon={<Truck className="h-5 w-5" />} />
         <StatCard title="Doanh thu" value={totalRevenue} icon={<Wallet className="h-5 w-5" />} />
@@ -69,7 +69,7 @@ export default function UserHomePage() {
 
       <TaskBoard tasks={tasks} onCopyAddress={handleCopyAddress} />
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:rounded-2xl md:p-5">
         <h2 className="text-lg font-semibold text-slate-900">Hoạt động gần đây</h2>
         <div className="mt-4 space-y-3">
           {(dashboard?.recentActivities ?? []).map((activity, index) => (

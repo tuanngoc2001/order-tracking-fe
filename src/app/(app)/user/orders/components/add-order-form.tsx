@@ -37,7 +37,7 @@ export default function AddOrderForm({ onAddOrder }: AddOrderFormProps) {
   }, [trackingCode, onAddOrder, toast, runAction]);
 
   return (
-    <div className="flex w-full items-center space-x-2">
+    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
       <Input
         type="text"
         placeholder="VD: VN123456789"
@@ -56,7 +56,7 @@ export default function AddOrderForm({ onAddOrder }: AddOrderFormProps) {
         ) : (
           <PlusCircle className="h-4 w-4" />
         )}
-        <span className="ml-2 hidden sm:inline">Thêm</span>
+        <span className="ml-2">Thêm</span>
       </Button>
     </div>
   );

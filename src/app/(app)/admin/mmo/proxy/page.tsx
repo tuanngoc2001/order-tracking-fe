@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
   ChevronLeft,
@@ -10,7 +10,6 @@ import {
   EyeOff,
   Filter,
   Lock,
-  LockOpen,
   Pencil,
   Plus,
   RefreshCw,
@@ -21,9 +20,18 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppAction } from "@/components/app-action-provider";
+import {
+  createMmoProxy,
+  deleteMmoProxy,
+  getMmoProxies,
+  invalidateApiCache,
+  updateMmoProxy,
+  updateMmoProxyStatus,
+  type MmoProxyResponse,
+} from "@/lib/api-client";
 
 type ProxyType = "HTTP" | "HTTPS" | "SOCKS5";
-type ProxyStatus = "active" | "warning" | "error" | "expired";
+type ProxyStatus = "active" | "warning" | "locked" | "error" | "expired";
 
 type ProxyItem = {
   id: number;
@@ -52,6 +60,37 @@ type CreateProxyForm = {
   expiredDate: string;
   note: string;
 };
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function mapApiProxy(item: MmoProxyResponse): ProxyItem {
+  return {
+    id: item.id,
+    ip: item.ip,
+    port: item.port,
+    type: item.type === "HTTPS" || item.type === "SOCKS5" ? item.type : "HTTP",
+    country: item.country,
+    countryCode: item.countryCode,
+    username: item.username,
+    password: item.password || "",
+    status: ["active", "warning", "locked", "error", "expired"].includes(item.status)
+      ? (item.status as ProxyStatus)
+      : "warning",
+    expiredDate: item.expiredDate || "-",
+    note: item.note || "-",
+    createdAt: formatDateTime(item.createdAt),
+  };
+}
 
 const countryCodeByName: Record<string, string> = {
   Vietnam: "VN",
@@ -88,149 +127,6 @@ const initialForm: CreateProxyForm = {
   note: "",
 };
 
-const mockProxies: ProxyItem[] = [
-  {
-    id: 1,
-    ip: "103.162.4.23",
-    port: "8080",
-    type: "HTTP",
-    country: "Vietnam",
-    countryCode: "VN",
-    username: "user_01",
-    password: "12345678",
-    status: "active",
-    expiredDate: "25/06/2024",
-    note: "TikTok - acc 01",
-    createdAt: "20/05/2024 10:30",
-  },
-  {
-    id: 2,
-    ip: "103.162.4.24",
-    port: "8080",
-    type: "HTTP",
-    country: "United States",
-    countryCode: "US",
-    username: "user_02",
-    password: "12345678",
-    status: "active",
-    expiredDate: "22/06/2024",
-    note: "Shopee - shop 01",
-    createdAt: "19/05/2024 14:20",
-  },
-  {
-    id: 3,
-    ip: "45.77.82.11",
-    port: "3128",
-    type: "SOCKS5",
-    country: "Japan",
-    countryCode: "JP",
-    username: "user_03",
-    password: "12345678",
-    status: "warning",
-    expiredDate: "26/06/2024",
-    note: "-",
-    createdAt: "18/05/2024 09:15",
-  },
-  {
-    id: 4,
-    ip: "103.181.12.15",
-    port: "8080",
-    type: "HTTP",
-    country: "Germany",
-    countryCode: "DE",
-    username: "user_04",
-    password: "12345678",
-    status: "error",
-    expiredDate: "20/05/2024",
-    note: "Timeout",
-    createdAt: "17/05/2024 16:45",
-  },
-  {
-    id: 5,
-    ip: "171.244.33.22",
-    port: "8080",
-    type: "SOCKS5",
-    country: "Vietnam",
-    countryCode: "VN",
-    username: "user_05",
-    password: "12345678",
-    status: "active",
-    expiredDate: "30/06/2024",
-    note: "TikTok - acc 02",
-    createdAt: "16/05/2024 11:30",
-  },
-  {
-    id: 6,
-    ip: "200.25.35.66",
-    port: "8080",
-    type: "HTTPS",
-    country: "France",
-    countryCode: "FR",
-    username: "user_06",
-    password: "12345678",
-    status: "expired",
-    expiredDate: "10/05/2024",
-    note: "Hết hạn",
-    createdAt: "15/05/2024 10:10",
-  },
-  {
-    id: 7,
-    ip: "103.132.22.19",
-    port: "3128",
-    type: "HTTP",
-    country: "Singapore",
-    countryCode: "SG",
-    username: "user_07",
-    password: "12345678",
-    status: "warning",
-    expiredDate: "27/06/2024",
-    note: "-",
-    createdAt: "14/05/2024 13:10",
-  },
-  {
-    id: 8,
-    ip: "51.79.89.15",
-    port: "8080",
-    type: "SOCKS5",
-    country: "United Kingdom",
-    countryCode: "GB",
-    username: "user_08",
-    password: "12345678",
-    status: "active",
-    expiredDate: "29/06/2024",
-    note: "Shopee - shop 02",
-    createdAt: "12/05/2024 09:40",
-  },
-  {
-    id: 9,
-    ip: "103.162.4.25",
-    port: "8080",
-    type: "HTTP",
-    country: "Vietnam",
-    countryCode: "VN",
-    username: "user_09",
-    password: "12345678",
-    status: "error",
-    expiredDate: "19/05/2024",
-    note: "Không kết nối",
-    createdAt: "12/05/2024 08:20",
-  },
-  {
-    id: 10,
-    ip: "185.199.109.12",
-    port: "8080",
-    type: "HTTPS",
-    country: "Canada",
-    countryCode: "CA",
-    username: "user_10",
-    password: "12345678",
-    status: "warning",
-    expiredDate: "01/07/2024",
-    note: "-",
-    createdAt: "10/05/2024 15:30",
-  },
-];
-
 function getCountryCode(country: string) {
   return countryCodeByName[country] ?? country.slice(0, 2).toUpperCase();
 }
@@ -266,6 +162,11 @@ function StatusBadge({ status }: { status: ProxyStatus }) {
       label: "Khả dụng",
       dot: "bg-blue-500",
       text: "text-blue-600",
+    },
+    locked: {
+      label: "Đã khóa",
+      dot: "bg-slate-500",
+      text: "text-slate-500",
     },
     error: {
       label: "Đã lỗi",
@@ -504,7 +405,8 @@ function AddProxyModal({
 export default function AdminMMOProxyPage() {
   const { toast } = useToast();
   const { isBlocking, runAction } = useAppAction();
-  const [proxies, setProxies] = useState<ProxyItem[]>(mockProxies);
+  const [proxies, setProxies] = useState<ProxyItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -518,6 +420,32 @@ export default function AdminMMOProxyPage() {
   const [openEditModal, setOpenEditModal] = useState(false);
   const [editForm, setEditForm] = useState<CreateProxyForm>(initialForm);
   const [selectedProxy, setSelectedProxy] = useState<ProxyItem | null>(null);
+
+  const loadProxies = useCallback(async ({ force = false } = {}) => {
+    if (force) {
+      invalidateApiCache("admin/mmo/proxies");
+    }
+    setIsLoading(true);
+
+    try {
+      const items = await getMmoProxies();
+      setProxies(items.map(mapApiProxy));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    loadProxies().catch(() => {
+      if (mounted) setIsLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [loadProxies]);
 
   const filteredProxies = useMemo(() => {
     let data = [...proxies];
@@ -563,6 +491,7 @@ export default function AdminMMOProxyPage() {
     const total = proxies.length;
     const active = proxies.filter((item) => item.status === "active").length;
     const warning = proxies.filter((item) => item.status === "warning").length;
+    const locked = proxies.filter((item) => item.status === "locked").length;
     const error = proxies.filter((item) => item.status === "error").length;
     const expired = proxies.filter((item) => item.status === "expired").length;
 
@@ -573,10 +502,12 @@ export default function AdminMMOProxyPage() {
       total,
       active,
       warning,
+      locked,
       error,
       expired,
       activePercent: percent(active),
       warningPercent: percent(warning),
+      lockedPercent: percent(locked),
       errorPercent: percent(error),
       expiredPercent: percent(expired),
     };
@@ -622,6 +553,17 @@ export default function AdminMMOProxyPage() {
     setCurrentPage(1);
   };
 
+  const handleRefreshProxies = async () => {
+    await runAction(async () => {
+      await loadProxies({ force: true });
+      setCurrentPage(1);
+    }, {
+      loadingMessage: "Đang làm mới dữ liệu proxy...",
+      successTitle: "Đã làm mới dữ liệu",
+      successDescription: "Danh sách proxy đã được tải lại từ database.",
+    });
+  };
+
   const handleFormChange = (field: keyof CreateProxyForm, value: string) => {
     setForm((prev) => ({
       ...prev,
@@ -641,10 +583,9 @@ export default function AdminMMOProxyPage() {
       return;
     }
 
-    await runAction(() => {
+    await runAction(async () => {
       const country = form.country.trim();
-      const newItem: ProxyItem = {
-        id: Date.now(),
+      const newItem = await createMmoProxy({
         ip: form.ip.trim(),
         port: form.port.trim(),
         type: form.type,
@@ -655,10 +596,9 @@ export default function AdminMMOProxyPage() {
         status: form.status,
         expiredDate: form.expiredDate.trim() || "-",
         note: form.note.trim() || "-",
-        createdAt: new Date().toLocaleString("vi-VN"),
-      };
+      });
 
-      setProxies((prev) => [newItem, ...prev]);
+      setProxies((prev) => [mapApiProxy(newItem), ...prev]);
       setOpenAddModal(false);
       setForm(initialForm);
       setCurrentPage(1);
@@ -669,23 +609,19 @@ export default function AdminMMOProxyPage() {
     });
   };
 
-  const handleLockProxy = (id: number) => {
-    setProxies((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, status: "warning" as ProxyStatus } : item
-      )
-    );
+  const handleLockProxy = async (id: number) => {
+    await runAction(async () => {
+      const updated = await updateMmoProxyStatus(id, "locked");
+      setProxies((prev) => prev.map((item) => (item.id === id ? mapApiProxy(updated) : item)));
+    }, {
+      loadingMessage: "Đang khóa proxy...",
+      successTitle: "Đã khóa proxy",
+      successDescription: "Trạng thái proxy đã được cập nhật trong database.",
+    });
   };
 
-  const handleUnlockProxy = (id: number) => {
-    setProxies((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, status: "active" as ProxyStatus } : item
-      )
-    );
-  };
-
-  const handleDeleteProxy = (id: number) => {
+  const handleDeleteProxy = async (id: number) => {
+    await deleteMmoProxy(id);
     setProxies((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -711,28 +647,21 @@ export default function AdminMMOProxyPage() {
       return;
     }
 
-    await runAction(() => {
+    await runAction(async () => {
       const country = editForm.country.trim();
-
-      setProxies((prev) =>
-        prev.map((item) =>
-          item.id === selectedProxy.id
-            ? {
-                ...item,
-                ip: editForm.ip.trim(),
-                port: editForm.port.trim(),
-                type: editForm.type,
-                country,
-                countryCode: editForm.countryCode || getCountryCode(country),
-                username: editForm.username.trim(),
-                password: editForm.password.trim(),
-                status: editForm.status,
-                expiredDate: editForm.expiredDate.trim() || "-",
-                note: editForm.note.trim() || "-",
-              }
-            : item
-        )
-      );
+      const updated = await updateMmoProxy(selectedProxy.id, {
+        ip: editForm.ip.trim(),
+        port: editForm.port.trim(),
+        type: editForm.type,
+        country,
+        countryCode: editForm.countryCode || getCountryCode(country),
+        username: editForm.username.trim(),
+        password: editForm.password.trim(),
+        status: editForm.status,
+        expiredDate: editForm.expiredDate.trim() || "-",
+        note: editForm.note.trim() || "-",
+      });
+      setProxies((prev) => prev.map((item) => (item.id === selectedProxy.id ? mapApiProxy(updated) : item)));
 
       setOpenEditModal(false);
       setSelectedProxy(null);
@@ -792,12 +721,12 @@ export default function AdminMMOProxyPage() {
           />
 
           <SummaryCard
-            title="Khả dụng"
-            value={String(allStats.warning)}
-            percent={allStats.warningPercent}
+            title="Đã khóa"
+            value={String(allStats.locked)}
+            percent={allStats.lockedPercent}
             icon={
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50">
-                <StatusDot className="bg-blue-500" />
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                <StatusDot className="bg-slate-500" />
               </div>
             }
           />
@@ -846,6 +775,7 @@ export default function AdminMMOProxyPage() {
                 <option value="all">Trạng thái: Tất cả</option>
                 <option value="active">Đang sử dụng</option>
                 <option value="warning">Khả dụng</option>
+                <option value="locked">Đã khóa</option>
                 <option value="error">Đã lỗi</option>
                 <option value="expired">Đã hết hạn</option>
               </select>
@@ -892,10 +822,11 @@ export default function AdminMMOProxyPage() {
           </div>
 
           <button
-            onClick={handleResetFilter}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-sky-600 transition hover:bg-sky-50"
+            onClick={handleRefreshProxies}
+            disabled={isBlocking || isLoading}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-sky-600 transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             Làm mới
           </button>
         </div>
@@ -992,21 +923,12 @@ export default function AdminMMOProxyPage() {
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (item.status === "warning") {
-                              handleUnlockProxy(item.id);
-                            } else {
-                              handleLockProxy(item.id);
-                            }
-                          }}
-                          className="text-sky-500 transition hover:scale-110 hover:text-sky-600"
-                          title={item.status === "warning" ? "Mở khóa" : "Khóa proxy"}
+                          onClick={() => handleLockProxy(item.id)}
+                          disabled={item.status === "locked" || isBlocking}
+                          className="text-sky-500 transition hover:scale-110 hover:text-sky-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          title={item.status === "locked" ? "Proxy đã khóa" : "Khóa proxy"}
                         >
-                          {item.status === "warning" ? (
-                            <LockOpen className="h-4 w-4" />
-                          ) : (
-                            <Lock className="h-4 w-4" />
-                          )}
+                          <Lock className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteProxy(item.id)}
@@ -1130,3 +1052,5 @@ export default function AdminMMOProxyPage() {
     </>
   );
 }
+
+

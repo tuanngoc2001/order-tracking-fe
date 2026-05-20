@@ -81,39 +81,39 @@ export default function UserProfilePage() {
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Thông Tin Cá Nhân</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Thông Tin Cá Nhân</h1>
         <p className="text-muted-foreground">Cập nhật thông tin và xem thống kê của bạn.</p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader>
+          <CardHeader className="p-4 md:p-6">
             <CardTitle>Thống kê</CardTitle>
             <CardDescription>Tổng quan về hoạt động của bạn.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 p-4 pt-0 md:space-y-4 md:p-6 md:pt-0">
             <div className="rounded-lg bg-muted p-4">
               <div className="text-sm text-muted-foreground">Họ tên</div>
               <div className="text-lg font-bold">{profile?.fullName ?? "-"}</div>
             </div>
-            <div className="flex items-center justify-between rounded-lg bg-muted p-4">
+            <div className="flex items-start justify-between gap-3 rounded-lg bg-muted p-4">
               <span className="text-sm font-medium text-muted-foreground">Số đơn hàng đã đặt</span>
               <span className="text-lg font-bold">{stats?.totalOrders ?? 0}</span>
             </div>
-            <div className="flex items-center justify-between rounded-lg bg-muted p-4">
+            <div className="flex items-start justify-between gap-3 rounded-lg bg-muted p-4">
               <span className="text-sm font-medium text-muted-foreground">Doanh thu hoàn thành</span>
-              <span className="text-lg font-bold">{formatCurrency(stats?.totalRevenue ?? 0)}</span>
+              <span className="break-words text-right text-lg font-bold">{formatCurrency(stats?.totalRevenue ?? 0)}</span>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
+          <CardHeader className="p-4 md:p-6">
             <CardTitle>Chỉnh sửa thông tin</CardTitle>
             <CardDescription>Thay đổi sẽ được lưu lại cho tài khoản của bạn.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField

@@ -99,37 +99,37 @@ export function WalletWithdrawDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <div className="hidden items-center gap-2 md:flex">
+      <div className="flex items-center gap-2">
         <DialogTrigger asChild>
-          <Button size="sm" className="h-10 rounded-xl bg-sky-500 px-3 text-sm font-semibold hover:bg-sky-600">
-            <Banknote className="mr-2 h-4 w-4" />
-            Rút tiền
+          <Button size="sm" className="h-10 rounded-xl bg-sky-500 px-2.5 text-sm font-semibold hover:bg-sky-600 md:px-3">
+            <Banknote className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Rút tiền</span>
           </Button>
         </DialogTrigger>
       </div>
 
-      <DialogContent className="max-h-[86vh] max-w-4xl overflow-y-auto">
+      <DialogContent className="max-h-[88svh] w-[calc(100vw-1.5rem)] max-w-4xl overflow-y-auto rounded-2xl p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Rút tiền hoa hồng</DialogTitle>
           <DialogDescription>Kiểm tra số xu khả dụng, thông tin tài khoản và lịch sử rút tiền.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3 md:gap-4">
           <div className="rounded-xl border border-sky-100 bg-sky-50 p-4">
             <p className="text-sm text-slate-500">Xu khả dụng</p>
-            <p className="mt-2 text-2xl font-bold text-sky-700">{formatCoins(availableCoins)}</p>
+            <p className="mt-2 break-words text-xl font-bold text-sky-700 md:text-2xl">{formatCoins(availableCoins)}</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-4">
             <p className="text-sm text-slate-500">Tổng xu</p>
-            <p className="mt-2 text-2xl font-bold text-slate-900">{formatCoins(summary?.coinBalance ?? 0)}</p>
+            <p className="mt-2 break-words text-xl font-bold text-slate-900 md:text-2xl">{formatCoins(summary?.coinBalance ?? 0)}</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-4">
             <p className="text-sm text-slate-500">Đang chờ rút</p>
-            <p className="mt-2 text-2xl font-bold text-slate-900">{formatCoins(summary?.pendingWithdrawal ?? 0)}</p>
+            <p className="mt-2 break-words text-xl font-bold text-slate-900 md:text-2xl">{formatCoins(summary?.pendingWithdrawal ?? 0)}</p>
           </div>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr] lg:gap-5">
           <form onSubmit={handleWithdraw} className="space-y-4 rounded-xl border border-slate-200 p-4">
             <div>
               <h3 className="text-base font-bold text-slate-900">Thông tin rút tiền</h3>
@@ -137,11 +137,11 @@ export function WalletWithdrawDialog() {
             </div>
 
             <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start justify-between gap-4">
                 <span>Ngân hàng</span>
                 <span className="font-semibold text-slate-900">{bankName || "Chưa cập nhật"}</span>
               </div>
-              <div className="mt-2 flex items-center justify-between gap-4">
+              <div className="mt-2 flex items-start justify-between gap-4">
                 <span>Số tài khoản</span>
                 <span className="font-semibold text-slate-900">{bankAccountNumber || "Chưa cập nhật"}</span>
               </div>
@@ -182,7 +182,7 @@ export function WalletWithdrawDialog() {
               <p className="mt-1 text-sm text-slate-500">Các yêu cầu rút xu về tài khoản ngân hàng của bạn.</p>
             </div>
 
-            <div className="mt-4 rounded-xl border">
+            <div className="mt-4 overflow-x-auto rounded-xl border">
               <Table>
                 <TableHeader>
                   <TableRow>

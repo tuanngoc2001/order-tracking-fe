@@ -32,13 +32,13 @@ export default function UserStatsPage() {
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Thống kê đơn hàng</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Thống kê đơn hàng</h1>
         <p className="text-muted-foreground">Theo dõi tỷ lệ trạng thái đơn hàng của bạn.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
         <Card><CardHeader><CardTitle>Tổng đơn</CardTitle></CardHeader><CardContent>{stats?.totalOrders ?? 0}</CardContent></Card>
         <Card><CardHeader><CardTitle>Hoàn thành</CardTitle></CardHeader><CardContent>{stats?.completedOrders ?? 0}</CardContent></Card>
         <Card><CardHeader><CardTitle>Đang giao</CardTitle></CardHeader><CardContent>{stats?.shippingOrders ?? 0}</CardContent></Card>

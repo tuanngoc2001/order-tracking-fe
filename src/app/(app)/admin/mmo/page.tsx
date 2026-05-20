@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -18,6 +18,13 @@ import {
   X,
 } from "lucide-react";
 import { useAppAction } from "@/components/app-action-provider";
+import {
+  createMmoAccount,
+  deleteMmoAccount,
+  getMmoAccounts,
+  updateMmoAccountStatus,
+  type MmoAccountResponse,
+} from "@/lib/api-client";
 
 type PlatformType = "tiktok" | "shopee";
 type AccountStatus = "active" | "warning" | "locked" | "inactive";
@@ -34,6 +41,35 @@ type MMOAccountItem = {
   createdAt: string;
   note?: string;
 };
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function mapApiAccount(item: MmoAccountResponse): MMOAccountItem {
+  return {
+    id: item.id,
+    platform: item.platform === "shopee" ? "shopee" : "tiktok",
+    account: item.account,
+    password: item.password,
+    email: item.email,
+    proxy: item.proxy || "-",
+    status: ["active", "warning", "locked", "inactive"].includes(item.status)
+      ? (item.status as AccountStatus)
+      : "inactive",
+    lockedDays: item.lockedDays || "-",
+    createdAt: formatDateTime(item.createdAt),
+    note: item.note ?? undefined,
+  };
+}
 
 type CreateAccountForm = {
   platform: PlatformType;
@@ -56,163 +92,6 @@ const initialForm: CreateAccountForm = {
   lockedDays: "",
   note: "",
 };
-
-const mockAccounts: MMOAccountItem[] = [
-  {
-    id: 1,
-    platform: "tiktok",
-    account: "nguyenvana.tiktok",
-    password: "12345678",
-    email: "nguyenvana@gmail.com",
-    proxy: "103.162.4.23:8080",
-    status: "active",
-    lockedDays: "-",
-    createdAt: "20/05/2024 10:30",
-  },
-  {
-    id: 2,
-    platform: "tiktok",
-    account: "tranthib.tiktok",
-    password: "12345678",
-    email: "tranthib@gmail.com",
-    proxy: "103.162.4.24:8080",
-    status: "active",
-    lockedDays: "-",
-    createdAt: "19/05/2024 14:20",
-  },
-  {
-    id: 3,
-    platform: "tiktok",
-    account: "levanc.tiktok",
-    password: "12345678",
-    email: "levanc@gmail.com",
-    proxy: "103.162.4.25:8080",
-    status: "warning",
-    lockedDays: "3 ngày",
-    createdAt: "18/05/2024 09:15",
-  },
-  {
-    id: 4,
-    platform: "tiktok",
-    account: "phamthid.tiktok",
-    password: "12345678",
-    email: "phamthid@gmail.com",
-    proxy: "103.162.4.26:8080",
-    status: "active",
-    lockedDays: "-",
-    createdAt: "17/05/2024 16:45",
-  },
-  {
-    id: 5,
-    platform: "tiktok",
-    account: "dothif.tiktok",
-    password: "12345678",
-    email: "dothif@gmail.com",
-    proxy: "103.162.4.27:8080",
-    status: "active",
-    lockedDays: "-",
-    createdAt: "16/05/2024 11:30",
-  },
-  {
-    id: 6,
-    platform: "tiktok",
-    account: "vuving.tiktok",
-    password: "12345678",
-    email: "vuving@gmail.com",
-    proxy: "103.162.4.28:8080",
-    status: "locked",
-    lockedDays: "7 ngày",
-    createdAt: "15/05/2024 10:10",
-  },
-  {
-    id: 7,
-    platform: "tiktok",
-    account: "hoangnam.tiktok",
-    password: "12345678",
-    email: "hoangnam@gmail.com",
-    proxy: "-",
-    status: "locked",
-    lockedDays: "15 ngày",
-    createdAt: "14/05/2024 13:10",
-  },
-  {
-    id: 8,
-    platform: "tiktok",
-    account: "thoorny.tiktok",
-    password: "12345678",
-    email: "thoorny@gmail.com",
-    proxy: "-",
-    status: "warning",
-    lockedDays: "2 ngày",
-    createdAt: "12/05/2024 09:40",
-  },
-  {
-    id: 9,
-    platform: "tiktok",
-    account: "ducanh.tiktok",
-    password: "12345678",
-    email: "ducanh@gmail.com",
-    proxy: "103.162.4.29:8080",
-    status: "active",
-    lockedDays: "-",
-    createdAt: "12/05/2024 08:20",
-  },
-  {
-    id: 10,
-    platform: "tiktok",
-    account: "minhkhang.tiktok",
-    password: "12345678",
-    email: "minhkhang@gmail.com",
-    proxy: "-",
-    status: "active",
-    lockedDays: "-",
-    createdAt: "10/05/2024 15:30",
-  },
-  {
-    id: 11,
-    platform: "shopee",
-    account: "shop.a001",
-    password: "12345678",
-    email: "shopa001@gmail.com",
-    proxy: "103.162.5.11:8080",
-    status: "active",
-    lockedDays: "-",
-    createdAt: "11/05/2024 08:20",
-  },
-  {
-    id: 12,
-    platform: "shopee",
-    account: "shop.a002",
-    password: "12345678",
-    email: "shopa002@gmail.com",
-    proxy: "103.162.5.12:8080",
-    status: "inactive",
-    lockedDays: "-",
-    createdAt: "10/05/2024 15:00",
-  },
-  {
-    id: 13,
-    platform: "shopee",
-    account: "shop.a003",
-    password: "12345678",
-    email: "shopa003@gmail.com",
-    proxy: "103.162.5.13:8080",
-    status: "warning",
-    lockedDays: "1 ngày",
-    createdAt: "09/05/2024 10:30",
-  },
-  {
-    id: 14,
-    platform: "shopee",
-    account: "shop.a004",
-    password: "12345678",
-    email: "shopa004@gmail.com",
-    proxy: "103.162.5.14:8080",
-    status: "locked",
-    lockedDays: "5 ngày",
-    createdAt: "08/05/2024 09:40",
-  },
-];
 
 function TikTokIcon() {
   return (
@@ -554,7 +433,8 @@ function AddAccountModal({
 
 export default function AdminMMOPage() {
   const { isBlocking, runAction } = useAppAction();
-  const [accounts, setAccounts] = useState<MMOAccountItem[]>(mockAccounts);
+  const [accounts, setAccounts] = useState<MMOAccountItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [platformTab, setPlatformTab] = useState<"all" | PlatformType>("tiktok");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -567,6 +447,22 @@ export default function AdminMMOPage() {
   const [form, setForm] = useState<CreateAccountForm>(initialForm);
   const [openDetailsModal, setOpenDetailsModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<MMOAccountItem | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    setIsLoading(true);
+    getMmoAccounts()
+      .then((items) => {
+        if (mounted) setAccounts(items.map(mapApiAccount));
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filteredAccounts = useMemo(() => {
     let data = [...accounts];
@@ -631,7 +527,7 @@ export default function AdminMMOPage() {
       totalPercent:
         platformTab === "all"
           ? "100% tổng số"
-          : `${((total / accounts.length) * 100).toFixed(1)}% tổng số`,
+          : `${(accounts.length === 0 ? 0 : (total / accounts.length) * 100).toFixed(1)}% tổng số`,
       activePercent: percent(active),
       warningPercent: percent(warning),
       lockedPercent: percent(locked),
@@ -672,20 +568,14 @@ export default function AdminMMOPage() {
     }));
   };
 
-  const formatNow = () => {
-    const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  };
 
   const handleAddAccount = async () => {
     if (!form.account.trim() || !form.password.trim() || !form.email.trim()) {
       return;
     }
 
-    await runAction(() => {
-      const newItem: MMOAccountItem = {
-        id: Date.now(),
+    await runAction(async () => {
+      const newItem = await createMmoAccount({
         platform: form.platform,
         account: form.account.trim(),
         password: form.password.trim(),
@@ -693,11 +583,10 @@ export default function AdminMMOPage() {
         proxy: form.proxy.trim() || "-",
         status: form.status,
         lockedDays: form.lockedDays.trim() || "-",
-        createdAt: formatNow(),
         note: form.note.trim(),
-      };
+      });
 
-      setAccounts((prev) => [newItem, ...prev]);
+      setAccounts((prev) => [mapApiAccount(newItem), ...prev]);
       setOpenAddModal(false);
       setForm(initialForm);
       setCurrentPage(1);
@@ -708,27 +597,18 @@ export default function AdminMMOPage() {
     });
   };
 
-  const handleLockAccount = (id: number) => {
-    setAccounts((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? { ...item, status: "warning" as AccountStatus, lockedDays: "1 ngày" }
-          : item
-      )
-    );
+  const handleLockAccount = async (id: number) => {
+    const updated = await updateMmoAccountStatus(id, { status: "warning", lockedDays: "1 ngày" });
+    setAccounts((prev) => prev.map((item) => (item.id === id ? mapApiAccount(updated) : item)));
   };
 
-  const handleUnlockAccount = (id: number) => {
-    setAccounts((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? { ...item, status: "active" as AccountStatus, lockedDays: "-" }
-          : item
-      )
-    );
+  const handleUnlockAccount = async (id: number) => {
+    const updated = await updateMmoAccountStatus(id, { status: "active", lockedDays: "-" });
+    setAccounts((prev) => prev.map((item) => (item.id === id ? mapApiAccount(updated) : item)));
   };
 
-  const handleDeleteAccount = (id: number) => {
+  const handleDeleteAccount = async (id: number) => {
+    await deleteMmoAccount(id);
     setAccounts((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -961,7 +841,7 @@ export default function AdminMMOPage() {
                     <td className="px-3 py-4">
                       <div className="flex items-center gap-3">
                         <span className="font-medium tracking-[2px] text-slate-800">
-                          {visiblePasswords[item.id] ? item.password : "••••••••"}
+                          {visiblePasswords[item.id] ? item.password : "⬢⬢⬢⬢⬢⬢⬢⬢"}
                         </span>
                         <button
                           onClick={() => togglePassword(item.id)}
@@ -1132,3 +1012,7 @@ export default function AdminMMOPage() {
     </>
   );
 }
+
+
+
+

@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft, PackageCheck } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type AuthMobileShellProps = {
   children: React.ReactNode;
@@ -12,7 +13,7 @@ export function AuthMobileShell({
   onBack,
 }: AuthMobileShellProps) {
   return (
-    <div className="min-h-screen bg-[#f8fbff] lg:hidden">
+    <div className="min-h-screen bg-[#f8fbff] transition-colors duration-300 dark:bg-slate-950 lg:hidden">
       <div className="mx-auto flex min-h-screen w-full max-w-[460px] flex-col px-4 pb-8 pt-4">
         <div className="mb-4 flex items-center justify-between">
           <button
@@ -32,10 +33,10 @@ export function AuthMobileShell({
             </span>
           </div>
 
-          <div className="w-10" />
+          <ThemeToggle variant="inline" className="h-10 w-10 rounded-full" />
         </div>
 
-        <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_18px_44px_rgba(148,163,184,0.14)]">
+        <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_18px_44px_rgba(148,163,184,0.14)] transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900">
           <div className="px-6 py-7">{children}</div>
         </div>
       </div>

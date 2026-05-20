@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Globe, PackageCheck } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type AuthDesktopLayoutProps = {
   children: ReactNode;
@@ -26,10 +27,13 @@ export function AuthHeader() {
         </div>
       </Link>
 
-      <button type="button" className="hidden items-center gap-2 text-sm font-medium text-sky-600 md:flex">
-        <Globe className="h-4 w-4" />
-        Vietnamese
-      </button>
+      <div className="flex items-center gap-2">
+        <button type="button" className="hidden items-center gap-2 text-sm font-medium text-sky-600 md:flex">
+          <Globe className="h-4 w-4" />
+          Vietnamese
+        </button>
+        <ThemeToggle variant="inline" className="rounded-full" />
+      </div>
     </div>
   );
 }
@@ -54,12 +58,11 @@ export function AuthDesktopLayout({
   compact = false,
 }: AuthDesktopLayoutProps) {
   return (
-    <div className="hidden min-h-screen bg-[#eef7fd] px-3 py-3 lg:block">
-      <div className={`mx-auto rounded-[10px] border border-sky-100 bg-[#f7fbff] shadow-sm ${compact ? "max-w-[980px]" : "max-w-[1360px]"}`}>
+    <div className="hidden min-h-screen bg-[#eef7fd] px-3 py-3 transition-colors duration-300 dark:bg-slate-950 lg:block">
+      <div className={`mx-auto rounded-[10px] border border-sky-100 bg-[#f7fbff] shadow-sm transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900 ${compact ? "max-w-[980px]" : "max-w-[1360px]"}`}>
         <AuthHeader />
         <div className="px-7 py-5">{children}</div>
       </div>
     </div>
   );
 }
-

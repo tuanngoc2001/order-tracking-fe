@@ -6,7 +6,6 @@ import {
   Check,
   CheckCircle2,
   ClipboardList,
-  Facebook,
   FileBarChart2,
   Headphones,
   KeyRound,
@@ -35,24 +34,6 @@ export function FeatureItem({
         <p className="mt-1 text-[13px] leading-6 text-slate-500">{description}</p>
       </div>
     </div>
-  );
-}
-
-export function SocialButton({
-  icon,
-  label,
-}: {
-  icon: ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      className="flex h-10 w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-600 transition hover:border-sky-200 hover:text-sky-600"
-    >
-      {icon}
-      {label}
-    </button>
   );
 }
 
@@ -198,11 +179,3 @@ export const registerFeatures = [
     description: "Sử dụng đầy đủ tính năng cơ bản hoàn toàn miễn phí.",
   },
 ];
-
-export const googleIcon = (
-  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-    <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.5 14.6 2.6 12 2.6 6.9 2.6 2.8 6.7 2.8 11.8S6.9 21 12 21c6.9 0 8.6-4.8 8.6-7.3 0-.5 0-.8-.1-1.2H12z" />
-  </svg>
-);
-
-export const facebookIcon = <Facebook className="h-4 w-4 text-[#1877F2]" />;

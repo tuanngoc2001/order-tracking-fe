@@ -13,16 +13,19 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const session = getAuthSession();
 
     if (!session?.isLoggedIn) {
+      setIsReady(false);
       router.replace("/login");
       return;
     }
 
     if (pathname.startsWith("/admin") && session.role !== "admin") {
+      setIsReady(false);
       router.replace("/user/home");
       return;
     }
 
     if (pathname.startsWith("/user") && session.role !== "user") {
+      setIsReady(false);
       router.replace("/admin/dashboard");
       return;
     }

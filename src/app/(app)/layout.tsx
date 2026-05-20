@@ -43,7 +43,7 @@ export default function AppLayout({
 
         <SidebarInset className="bg-[#f8fbff]">
           <AppHeader />
-          <main className="flex-1 p-4 md:p-6">{children}</main>
+          <main className="min-w-0 flex-1 px-3 py-4 sm:px-4 md:p-6">{children}</main>
           <SupportFloatingButtons />
         </SidebarInset>
       </SidebarProvider>

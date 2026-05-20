@@ -3,7 +3,7 @@
 import { getAuthSession } from "@/lib/auth-client";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ??
+  process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/$/, "") ??
   "https://order-tracking-be-xuh3.onrender.com/api";
 
 type ApiFetchOptions = RequestInit & {
@@ -376,6 +376,69 @@ export type TaskPayload = {
   active: boolean;
 };
 
+export type AdminUserResponse = {
+  id: number;
+  code: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: "admin" | "user" | string;
+  status: "active" | "locked";
+  createdAt: string;
+};
+
+export type MmoAccountResponse = {
+  id: number;
+  platform: "tiktok" | "shopee" | string;
+  account: string;
+  password: string;
+  email: string;
+  proxy: string;
+  status: "active" | "warning" | "locked" | "inactive" | string;
+  lockedDays: string;
+  createdAt: string;
+  note?: string | null;
+};
+
+export type MmoAccountPayload = {
+  platform: string;
+  account: string;
+  password: string;
+  email: string;
+  proxy?: string;
+  status: string;
+  lockedDays?: string;
+  note?: string;
+};
+
+export type MmoProxyResponse = {
+  id: number;
+  ip: string;
+  port: string;
+  type: "HTTP" | "HTTPS" | "SOCKS5" | string;
+  country: string;
+  countryCode: string;
+  username: string;
+  password: string;
+  status: "active" | "warning" | "locked" | "error" | "expired" | string;
+  expiredDate: string;
+  note: string;
+  createdAt: string;
+};
+
+export type MmoProxyPayload = {
+  ip: string;
+  port: string;
+  type: string;
+  country: string;
+  countryCode: string;
+  username: string;
+  password?: string;
+  status: string;
+  expiredDate?: string;
+  note?: string;
+};
+
 export type OtpResponse = {
   message: string;
   email: string;
@@ -483,6 +546,22 @@ export async function getAdminWithdrawals() {
   return cachedGet<AdminWithdrawalResponse[]>("admin/withdrawals", "/admin/withdrawals", { auth: true }, 15_000);
 }
 
+export async function getAdminOrders() {
+  return cachedGet<AdminRecentOrderResponse[]>("admin/orders", "/admin/orders", { auth: true }, 15_000);
+}
+
+export async function updateAdminOrderStatus(id: number, status: string) {
+  const result = await apiFetch<AdminRecentOrderResponse>(`/admin/orders/${id}/status`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify({ status }),
+  });
+  invalidateApiCache("admin/orders");
+  invalidateApiCache("admin/dashboard");
+  invalidateApiCache("admin/stats");
+  return result;
+}
+
 export async function getUserOrders() {
   return cachedGet<UserOrder[]>("user/orders", "/user/orders", { auth: true }, 15_000);
 }
@@ -530,4 +609,100 @@ export async function deleteTaskPost(id: number) {
     auth: true,
   });
   invalidateApiCache("tasks");
+}
+
+export async function getAdminUsers() {
+  return cachedGet<AdminUserResponse[]>("admin/users", "/admin/users", { auth: true }, 15_000);
+}
+
+export async function updateAdminUserStatus(id: number, active: boolean) {
+  const result = await apiFetch<AdminUserResponse>(`/admin/users/${id}/status`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify({ active }),
+  });
+  invalidateApiCache("admin/users");
+  return result;
+}
+
+export async function deleteAdminUser(id: number) {
+  await apiFetch<void>(`/admin/users/${id}`, {
+    method: "DELETE",
+    auth: true,
+  });
+  invalidateApiCache("admin/users");
+}
+
+export async function getMmoAccounts() {
+  return cachedGet<MmoAccountResponse[]>("admin/mmo/accounts", "/admin/mmo/accounts", { auth: true }, 15_000);
+}
+
+export async function createMmoAccount(payload: MmoAccountPayload) {
+  const result = await apiFetch<MmoAccountResponse>("/admin/mmo/accounts", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+  invalidateApiCache("admin/mmo/accounts");
+  return result;
+}
+
+export async function updateMmoAccountStatus(id: number, payload: { status: string; lockedDays?: string }) {
+  const result = await apiFetch<MmoAccountResponse>(`/admin/mmo/accounts/${id}/status`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+  invalidateApiCache("admin/mmo/accounts");
+  return result;
+}
+
+export async function deleteMmoAccount(id: number) {
+  await apiFetch<void>(`/admin/mmo/accounts/${id}`, {
+    method: "DELETE",
+    auth: true,
+  });
+  invalidateApiCache("admin/mmo/accounts");
+}
+
+export async function getMmoProxies() {
+  return cachedGet<MmoProxyResponse[]>("admin/mmo/proxies", "/admin/mmo/proxies", { auth: true }, 15_000);
+}
+
+export async function createMmoProxy(payload: MmoProxyPayload) {
+  const result = await apiFetch<MmoProxyResponse>("/admin/mmo/proxies", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+  invalidateApiCache("admin/mmo/proxies");
+  return result;
+}
+
+export async function updateMmoProxy(id: number, payload: MmoProxyPayload) {
+  const result = await apiFetch<MmoProxyResponse>(`/admin/mmo/proxies/${id}`, {
+    method: "PUT",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+  invalidateApiCache("admin/mmo/proxies");
+  return result;
+}
+
+export async function updateMmoProxyStatus(id: number, status: string) {
+  const result = await apiFetch<MmoProxyResponse>(`/admin/mmo/proxies/${id}/status`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify({ status }),
+  });
+  invalidateApiCache("admin/mmo/proxies");
+  return result;
+}
+
+export async function deleteMmoProxy(id: number) {
+  await apiFetch<void>(`/admin/mmo/proxies/${id}`, {
+    method: "DELETE",
+    auth: true,
+  });
+  invalidateApiCache("admin/mmo/proxies");
 }

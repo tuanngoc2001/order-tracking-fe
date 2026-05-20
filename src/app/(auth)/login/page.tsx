@@ -6,15 +6,12 @@ import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useAppAction } from "@/components/app-action-provider";
 import { AuthDesktopLayout, AuthFooter } from "@/components/auth/auth-desktop-layout";
 import {
-  facebookIcon,
   FeatureItem,
-  googleIcon,
   LoginIllustration,
   loginFeatures,
-  SocialButton,
 } from "@/components/auth/auth-visuals";
 import { login as loginRequest } from "@/lib/api-client";
-import { saveAuthSession } from "@/lib/auth-client";
+import { normalizeUserRole, saveAuthSession } from "@/lib/auth-client";
 import { AuthMobileShell } from "../auth-mobile-shell";
 
 type LoginFormData = {
@@ -75,7 +72,7 @@ export default function LoginPage() {
 
         const session = {
           isLoggedIn: true,
-          role: response.role.toLowerCase() === "admin" ? "admin" : "user",
+          role: normalizeUserRole(response.role),
           name: response.fullName || response.username,
           username: response.username,
           email: response.email,
@@ -173,17 +170,6 @@ export default function LoginPage() {
         {isSubmitting ? "Đang xử lý..." : "Đăng nhập"}
       </button>
 
-      <div className="flex items-center gap-4 py-1 text-xs text-slate-400">
-        <div className="h-px flex-1 bg-slate-200" />
-        <span>hoặc đăng nhập với</span>
-        <div className="h-px flex-1 bg-slate-200" />
-      </div>
-
-      <div className="space-y-2.5">
-        <SocialButton icon={googleIcon} label="Đăng nhập với Google" />
-        <SocialButton icon={facebookIcon} label="Đăng nhập với Facebook" />
-      </div>
-
       <div className="pt-1 text-center text-sm text-slate-500">
         Chưa có tài khoản?{" "}
         <button type="button" onClick={() => router.push("/register")} className="font-semibold text-sky-600">
@@ -251,17 +237,6 @@ export default function LoginPage() {
       >
         {isSubmitting ? "Đang xử lý..." : "Đăng nhập"}
       </button>
-
-      <div className="flex items-center gap-4 py-1 text-xs text-slate-400">
-        <div className="h-px flex-1 bg-slate-200" />
-        <span>hoặc đăng nhập với</span>
-        <div className="h-px flex-1 bg-slate-200" />
-      </div>
-
-      <div className="space-y-2.5">
-        <SocialButton icon={googleIcon} label="Đăng nhập với Google" />
-        <SocialButton icon={facebookIcon} label="Đăng nhập với Facebook" />
-      </div>
 
       <div className="pt-1 text-center text-sm text-slate-500">
         Chưa có tài khoản?{" "}

@@ -12,6 +12,7 @@ import AddOrderForm from "./add-order-form";
 import OrderList from "./order-list";
 import type { UserOrder } from "./types";
 import { useToast } from "@/hooks/use-toast";
+import { createUserOrder } from "@/lib/api-client";
 
 interface UserOrdersViewProps {
   initialOrders: UserOrder[];
@@ -22,7 +23,7 @@ export default function UserOrdersView({ initialOrders }: UserOrdersViewProps) {
   const { toast } = useToast();
 
   const handleAddOrder = useCallback(
-    (trackingCode: string) => {
+    async (trackingCode: string) => {
       if (
         userOrders.some(
           (order) =>
@@ -37,41 +38,41 @@ export default function UserOrdersView({ initialOrders }: UserOrdersViewProps) {
         return;
       }
 
-      const currentDate = new Date().toISOString().slice(0, 10);
-      // Create a new mock order object to simulate adding
-      const newOrder: UserOrder = {
-        id: String(Date.now()),
-        trackingCode: trackingCode,
-        amount: Math.floor(Math.random() * 2000000) + 100000,
-        status: "pending",
-        createdAt: currentDate,
-      };
-
-      setUserOrders((prevOrders) => [newOrder, ...prevOrders]);
+      const created = await createUserOrder({ trackingCode });
+      setUserOrders((prevOrders) => [
+        {
+          id: String(created.id),
+          trackingCode: created.trackingCode,
+          amount: created.amount,
+          status: created.status,
+          createdAt: created.createdAt,
+        },
+        ...prevOrders,
+      ]);
     },
     [userOrders, toast]
   );
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-3">
       <div className="lg:col-span-1">
         <Card>
-          <CardHeader>
+          <CardHeader className="p-4 md:p-6">
             <CardTitle>Thêm mã vận đơn</CardTitle>
             <CardDescription>Nhập mã vận đơn mới để theo dõi.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
             <AddOrderForm onAddOrder={handleAddOrder} />
           </CardContent>
         </Card>
       </div>
       <div className="lg:col-span-2">
         <Card>
-          <CardHeader>
+          <CardHeader className="p-4 md:p-6">
             <CardTitle>Danh sách vận đơn</CardTitle>
             <CardDescription>Các vận đơn bạn đã thêm.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
             <OrderList orders={userOrders} />
           </CardContent>
         </Card>

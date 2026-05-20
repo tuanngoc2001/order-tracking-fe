@@ -88,7 +88,54 @@ export default function OrderList({ orders }: OrderListProps) {
 
   return (
     <>
-      <div className="overflow-hidden rounded-lg border border-slate-200">
+      <div className="space-y-3 md:hidden">
+        {paginatedOrders.map((order) => {
+          const meta = statusMeta[order.status];
+
+          return (
+            <div key={order.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-slate-500">Mã vận đơn</p>
+                  <p className="mt-1 break-all text-sm font-bold text-slate-900">{order.trackingCode}</p>
+                </div>
+                <Badge variant={meta.variant} className="shrink-0">{meta.label}</Badge>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">Số tiền</p>
+                  <p className="mt-1 font-semibold text-slate-900">{formatCurrency(order.amount)}</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">Ngày tạo</p>
+                  <p className="mt-1 font-semibold text-slate-900">{formatDate(order.createdAt)}</p>
+                </div>
+              </div>
+
+              {order.status === "completed" && order.proofImageUrl ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 w-full"
+                  onClick={() => setImageOrder(order)}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Xem ảnh
+                </Button>
+              ) : null}
+            </div>
+          );
+        })}
+
+        {paginatedOrders.length === 0 && (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+            Chưa có mã vận đơn nào.
+          </div>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-slate-200 md:block">
         <Table>
           <TableHeader>
             <TableRow>

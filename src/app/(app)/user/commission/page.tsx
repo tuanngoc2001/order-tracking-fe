@@ -30,13 +30,13 @@ function SummaryCard({
 }) {
   return (
     <Card>
-      <CardContent className="flex items-start justify-between p-6">
-        <div>
+      <CardContent className="flex items-start justify-between gap-3 p-4 md:p-6">
+        <div className="min-w-0">
           <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
+          <p className="mt-2 break-words text-xl font-bold text-slate-900 md:text-2xl">{value}</p>
           <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
         </div>
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-600">{icon}</div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 md:h-11 md:w-11">{icon}</div>
       </CardContent>
     </Card>
   );
@@ -93,23 +93,23 @@ export default function UserCommissionPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Giới thiệu & Hoa hồng</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Giới thiệu & Hoa hồng</h1>
         <p className="text-muted-foreground">Theo dõi xu hoa hồng, link giới thiệu và lịch sử nhận hoa hồng.</p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader>
+          <CardHeader className="p-4 md:p-6">
             <CardTitle className="flex items-center gap-2">
               <HandCoins className="h-5 w-5 text-sky-600" />
               Mã giới thiệu của bạn
             </CardTitle>
             <CardDescription>Dùng mã này để mời người dùng mới đăng ký.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="rounded-xl border border-dashed border-sky-200 bg-sky-50 px-4 py-5 text-center font-mono text-xl font-bold tracking-[0.2em] text-sky-700">
+          <CardContent className="space-y-3 p-4 pt-0 md:p-6 md:pt-0">
+            <div className="break-all rounded-xl border border-dashed border-sky-200 bg-sky-50 px-4 py-5 text-center font-mono text-lg font-bold tracking-[0.16em] text-sky-700 md:text-xl">
               {summary?.referralCode ?? "---"}
             </div>
             <Button
@@ -124,15 +124,15 @@ export default function UserCommissionPage() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="p-4 md:p-6">
             <CardTitle className="flex items-center gap-2">
               <Link2 className="h-5 w-5 text-sky-600" />
               Link giới thiệu của bạn
             </CardTitle>
             <CardDescription>Người đăng ký từ link này sẽ thuộc tuyến F1 trực tiếp của bạn.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="rounded-xl border border-dashed border-sky-200 bg-slate-50 px-4 py-5 text-center text-sm font-medium text-slate-700">
+          <CardContent className="space-y-3 p-4 pt-0 md:p-6 md:pt-0">
+            <div className="break-all rounded-xl border border-dashed border-sky-200 bg-slate-50 px-4 py-5 text-center text-sm font-medium text-slate-700">
               {referralLink || "Chưa có link giới thiệu"}
             </div>
             <Button
@@ -147,7 +147,7 @@ export default function UserCommissionPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
         <SummaryCard
           title="Xu khả dụng"
           value={formatCoins(summary?.withdrawableCoins ?? 0)}
@@ -175,12 +175,12 @@ export default function UserCommissionPage() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="p-4 md:p-6">
           <CardTitle>Lịch sử nhận hoa hồng</CardTitle>
           <CardDescription>Danh sách hoa hồng phát sinh từ đơn hàng của F1 trực tiếp.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-xl border">
+        <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+          <div className="overflow-x-auto rounded-xl border">
             <Table>
               <TableHeader>
                 <TableRow>

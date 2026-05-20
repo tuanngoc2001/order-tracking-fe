@@ -8,6 +8,7 @@ import { register as registerRequest, sendRegisterOtp, verifyRegisterOtp } from 
 import {
   clearPendingRegisterSession,
   getPendingRegisterSession,
+  normalizeUserRole,
   saveAuthSession,
 } from "@/lib/auth-client";
 import { AuthMobileShell } from "../auth-mobile-shell";
@@ -71,7 +72,7 @@ function VerifyOtpPageContent() {
           clearPendingRegisterSession();
           saveAuthSession({
             isLoggedIn: true,
-            role: response.role.toLowerCase() === "admin" ? "admin" : "user",
+            role: normalizeUserRole(response.role),
             name: response.fullName || response.username,
             username: response.username,
             email: response.email,

@@ -40,7 +40,7 @@ export function TaskBoard({
 
   return (
     <>
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-bold text-slate-900">{title}</h2>
           {tasks.length > TASKS_PER_PAGE ? (
@@ -83,12 +83,12 @@ export function TaskBoard({
           ) : null}
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-4 grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
           {visibleTasks.map((task) => (
             <div key={task.id} className="rounded-xl border border-slate-200 p-4">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold text-slate-900">{task.title}</h3>
+                <div className="min-w-0">
+                  <h3 className="break-words font-semibold text-slate-900">{task.title}</h3>
                   <p className="mt-1 text-sm text-slate-500">{task.finalPrice}</p>
                 </div>
                 <button
@@ -128,7 +128,7 @@ export function TaskBoard({
                 <p className="line-clamp-3 whitespace-pre-line">{task.howToBuy}</p>
                 <p className="flex items-start gap-2">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-sky-500" />
-                  <span className="line-clamp-2">{task.address}</span>
+                  <span className="line-clamp-2 break-words">{task.address}</span>
                 </p>
               </div>
 
@@ -146,7 +146,7 @@ export function TaskBoard({
       </div>
 
       <Dialog open={!!selectedSample} onOpenChange={(open) => !open && setSelectedSample(null)}>
-        <DialogContent className="max-w-md border-slate-200 bg-white p-0">
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md border-slate-200 bg-white p-0">
           {selectedSample ? (
             <>
               <DialogHeader className="border-b border-slate-100 px-5 py-4 text-left">
