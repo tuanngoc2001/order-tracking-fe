@@ -1,6 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { TopUser } from "@/lib/definitions";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 interface TopUsersProps {
   users: TopUser[];
@@ -14,8 +13,6 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function TopUsers({ users }: TopUsersProps) {
-  const getAvatar = (id: string) =>
-    PlaceHolderImages.find((img) => img.id === id);
 
   return (
     <div className="space-y-4">
@@ -23,16 +20,15 @@ export default function TopUsers({ users }: TopUsersProps) {
         <div key={user.id} className="flex items-center gap-4">
           <Avatar className="h-9 w-9">
             <AvatarImage
-              src={getAvatar(user.avatarId)?.imageUrl}
+              src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(user.name)}`}
               alt={user.name}
-              data-ai-hint={getAvatar(user.avatarId)?.imageHint}
             />
             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
           </Avatar>
           <div className="grid gap-1">
             <p className="text-sm font-medium leading-none">{user.name}</p>
             <p className="text-sm text-muted-foreground">
-              {user.orderCount} đơn hàng
+              {user.orderCount} Ä‘Æ¡n hÃ ng
             </p>
           </div>
           <div className="ml-auto font-medium">

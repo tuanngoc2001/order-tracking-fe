@@ -658,9 +658,9 @@ export default function AdminMMOPage() {
 
   return (
     <>
-      <div className="space-y-5">
+      <div className="space-y-4 md:space-y-5">
         <div>
-          <h1 className="text-[34px] font-bold leading-tight tracking-tight text-slate-900">
+          <h1 className="text-2xl font-bold leading-tight tracking-tight text-slate-900 md:text-[34px]">
             MMO Accounts - Danh sách tài khoản
           </h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -669,7 +669,7 @@ export default function AdminMMOPage() {
         </div>
 
         <div className="border-b border-slate-200">
-          <div className="flex items-center gap-7">
+          <div className="flex items-center gap-4 overflow-x-auto pb-px md:gap-7">
             {renderTab({
               value: "all",
               label: "Tất cả",
@@ -692,7 +692,7 @@ export default function AdminMMOPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-col gap-3 md:gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-[1.2fr_0.75fr_0.75fr_0.42fr]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -740,23 +740,23 @@ export default function AdminMMOPage() {
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button className="inline-flex h-12 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-sky-600 transition-all duration-200 hover:bg-sky-50 active:scale-[0.98]">
+          <div className="grid grid-cols-2 gap-2 md:flex md:items-center md:gap-3">
+            <button className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-sky-600 transition-all duration-200 hover:bg-sky-50 active:scale-[0.98] md:px-4">
               <Download className="h-4 w-4" />
-              Import Excel
+              <span className="truncate">Import Excel</span>
             </button>
 
             <button
               onClick={() => setOpenAddModal(true)}
-              className="inline-flex h-12 items-center gap-2 rounded-xl bg-sky-500 px-5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-sky-600 hover:shadow active:scale-[0.98]"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-sky-500 px-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-sky-600 hover:shadow active:scale-[0.98] md:px-5"
             >
               <Plus className="h-4 w-4" />
-              Thêm tài khoản
+              <span className="truncate">Thêm tài khoản</span>
             </button>
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-5">
           <SummaryCard
             title={`Tài khoản ${
               platformTab === "shopee"
@@ -810,7 +810,84 @@ export default function AdminMMOPage() {
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
+          <div className="border-b border-slate-100 px-4 py-3 md:hidden">
+            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+              <span>{filteredAccounts.length} tài khoản</span>
+              <span>Trang {currentPage}/{totalPages}</span>
+            </div>
+          </div>
+
+          <div className="space-y-3 p-4 md:hidden">
+            {pagedAccounts.map((item) => (
+              <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <PlatformBadge platform={item.platform} />
+                    <div className="min-w-0">
+                      <h2 className="truncate text-base font-bold text-slate-900">{item.account}</h2>
+                      <p className="mt-1 truncate text-xs text-slate-400">{item.email}</p>
+                    </div>
+                  </div>
+                  <StatusBadge status={item.status} />
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs text-slate-400">Mật khẩu</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <p className="min-w-0 truncate font-semibold tracking-[2px] text-slate-700">
+                        {visiblePasswords[item.id] ? item.password : "••••••••"}
+                      </p>
+                      <button onClick={() => togglePassword(item.id)} className="shrink-0 text-slate-400">
+                        {visiblePasswords[item.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs text-slate-400">Proxy</p>
+                    <p className="mt-1 truncate font-semibold text-slate-700">{item.proxy}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs text-slate-400">Đã khóa</p>
+                    <p className="mt-1 truncate font-semibold text-slate-700">{item.lockedDays}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs text-slate-400">Ngày tạo</p>
+                    <p className="mt-1 truncate font-semibold text-slate-700">{item.createdAt}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-center justify-end gap-3 border-t border-slate-100 pt-3">
+                  <button onClick={() => handleViewDetails(item)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (item.status === "warning") {
+                        handleUnlockAccount(item.id);
+                      } else {
+                        handleLockAccount(item.id);
+                      }
+                    }}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600"
+                  >
+                    {item.status === "warning" ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                  </button>
+                  <button onClick={() => handleDeleteAccount(item.id)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </article>
+            ))}
+
+            {!isLoading && pagedAccounts.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+                Không có dữ liệu phù hợp.
+              </div>
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full text-sm">
               <thead className="border-b border-slate-100 text-left text-slate-500">
                 <tr>
@@ -917,7 +994,7 @@ export default function AdminMMOPage() {
           </div>
 
           <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-4 text-sm text-slate-500">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 md:gap-4">
               <div className="flex items-center gap-2">
                 <span>Hiển thị</span>
                 <select
@@ -933,7 +1010,7 @@ export default function AdminMMOPage() {
               <span>trên {filteredAccounts.length} kết quả</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2 md:justify-end">
               <button
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-50 disabled:opacity-50"
                 disabled={currentPage === 1}

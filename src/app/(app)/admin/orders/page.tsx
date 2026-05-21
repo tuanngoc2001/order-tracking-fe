@@ -8,7 +8,6 @@ import {
   ChevronRight,
   ChevronDown,
   X,
-  Upload,
   Loader2,
 } from "lucide-react";
 import DatePicker from "@/components/ui/date-picker";
@@ -40,6 +39,19 @@ function formatCurrency(value: number) {
   return `${Math.round(value).toLocaleString("vi-VN")} đ`;
 }
 
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function mapApiOrder(order: AdminRecentOrderResponse): Order {
   return {
     id: order.id,
@@ -48,6 +60,7 @@ function mapApiOrder(order: AdminRecentOrderResponse): Order {
     total: formatCurrency(order.totalAmount),
     status: order.status === "pending" ? "unpaid" : (order.status as OrderStatus),
     createdAt: order.createdAt,
+    transferImage: order.proofImageUrl ?? undefined,
   };
 }
 
@@ -70,18 +83,12 @@ const editableStatusOptions: { value: OrderStatus; label: string }[] = [
 
 function TransferImageModal({
   order,
-  mode,
   previewImage,
   onClose,
-  onFileChange,
-  onSave,
 }: {
   order: Order | null;
-  mode: "add" | "view";
   previewImage: string;
   onClose: () => void;
-  onFileChange: (file: File) => void;
-  onSave: () => void;
 }) {
   if (!order) return null;
 
@@ -91,7 +98,7 @@ function TransferImageModal({
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <div>
             <h3 className="text-xl font-bold text-slate-900">
-              {mode === "add" ? "Thêm ảnh chuyển khoản" : "Ảnh chuyển khoản"}
+              Ảnh chuyển khoản
             </h3>
             <p className="mt-1 text-sm text-slate-500">
               Đơn hàng {order.code} - {order.customer}
@@ -116,38 +123,9 @@ function TransferImageModal({
               />
             </div>
           ) : (
-            <label className="flex h-64 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-center transition hover:border-sky-300 hover:bg-sky-50/40">
-              <Upload className="mb-3 h-10 w-10 text-sky-500" />
-              <p className="font-semibold text-slate-700">
-                Bấm để chọn ảnh chuyển khoản
-              </p>
-              <p className="mt-1 text-sm text-slate-400">PNG, JPG, JPEG</p>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) onFileChange(file);
-                }}
-              />
-            </label>
-          )}
-
-          {mode === "add" && previewImage && (
-            <div className="mt-4">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
-                Đổi ảnh khác
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) onFileChange(file);
-                  }}
-                />
-              </label>
+            <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-center">
+              <p className="font-semibold text-slate-700">Chưa có ảnh chuyển khoản</p>
+              <p className="mt-1 text-sm text-slate-400">Backend chưa trả về ảnh cho đơn hàng này.</p>
             </div>
           )}
         </div>
@@ -159,16 +137,6 @@ function TransferImageModal({
           >
             Đóng
           </button>
-
-          {mode === "add" && (
-            <button
-              onClick={onSave}
-              disabled={!previewImage}
-              className="h-11 rounded-xl bg-sky-500 px-5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:opacity-50"
-            >
-              Lưu ảnh
-            </button>
-          )}
         </div>
       </div>
     </div>
@@ -190,7 +158,6 @@ export default function AdminOrdersPage() {
   >({});
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [modalMode, setModalMode] = useState<"add" | "view">("add");
   const [previewImage, setPreviewImage] = useState("");
 
   const pageSize = 6;
@@ -260,43 +227,7 @@ export default function AdminOrdersPage() {
 
   const handleOpenTransferModal = (order: Order) => {
     setSelectedOrder(order);
-
-    if (order.transferImage) {
-      setModalMode("view");
-      setPreviewImage(order.transferImage);
-    } else {
-      setModalMode("add");
-      setPreviewImage("");
-    }
-  };
-
-  const handleFileChange = (file: File) => {
-    const imageUrl = URL.createObjectURL(file);
-    setPreviewImage(imageUrl);
-  };
-
-  const handleSaveImage = async () => {
-    if (!selectedOrder || !previewImage) return;
-
-    await runAction(() => {
-      setOrders((prev) =>
-        prev.map((item) =>
-          item.id === selectedOrder.id
-            ? {
-                ...item,
-                transferImage: previewImage,
-              }
-            : item
-        )
-      );
-
-      setSelectedOrder(null);
-      setPreviewImage("");
-    }, {
-      loadingMessage: "Đang lưu ảnh chuyển khoản...",
-      successTitle: "Lưu ảnh thành công",
-      successDescription: `Ảnh chuyển khoản của đơn hàng ${selectedOrder.code} đã được lưu.`,
-    });
+    setPreviewImage(order.transferImage ?? "");
   };
 
   const handleCloseModal = () => {
@@ -308,9 +239,9 @@ export default function AdminOrdersPage() {
 
   return (
     <>
-      <div className="space-y-5">
+      <div className="space-y-4 md:space-y-5">
         <div>
-          <h1 className="text-[26px] font-bold text-slate-900">
+          <h1 className="text-2xl font-bold leading-tight text-slate-900 md:text-[26px]">
             Quản lý đơn hàng
           </h1>
           <p className="mt-1 text-sm text-slate-400">
@@ -318,13 +249,16 @@ export default function AdminOrdersPage() {
           </p>
         </div>
 
-        <div className="relative overflow-visible rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-5 grid gap-3 lg:grid-cols-[1.35fr_0.78fr_0.66fr_0.66fr_0.42fr_0.32fr]">
+        <div className="relative overflow-visible rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <div className="mb-4 grid gap-3 md:mb-5 md:grid-cols-2 lg:grid-cols-[1.35fr_0.78fr_0.66fr_0.66fr_0.42fr_0.32fr]">
             <div className="relative">
               <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="Tìm kiếm đơn hàng..."
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 pr-11 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
               />
@@ -420,7 +354,101 @@ export default function AdminOrdersPage() {
             </button>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-slate-100">
+          <div className="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500 md:hidden">
+            <span>{filteredOrders.length} đơn hàng</span>
+            <span>Trang {page}/{totalPages}</span>
+          </div>
+
+          <div className="space-y-3 md:hidden">
+            {data.map((order) => {
+              const currentStatus = editedStatuses[order.id] ?? order.status;
+              const isEdited = editedStatuses[order.id] !== undefined;
+
+              return (
+                <article
+                  key={order.id}
+                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-slate-400">Mã đơn hàng</p>
+                      <h2 className="mt-1 truncate text-base font-bold text-slate-900">{order.code}</h2>
+                    </div>
+                    <button
+                      onClick={() => handleOpenTransferModal(order)}
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition ${
+                        order.transferImage
+                          ? "border-sky-100 bg-sky-50 text-sky-600"
+                          : "border-amber-100 bg-amber-50 text-amber-600"
+                      }`}
+                      title={order.transferImage ? "Xem ảnh chuyển khoản" : "Thêm ảnh chuyển khoản"}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-xs text-slate-400">Khách hàng</p>
+                      <p className="mt-1 truncate font-semibold text-slate-700">{order.customer}</p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-xs text-slate-400">Tổng tiền</p>
+                      <p className="mt-1 truncate font-semibold text-slate-900">{order.total}</p>
+                    </div>
+                    <div className="col-span-2 rounded-xl bg-slate-50 p-3">
+                      <p className="text-xs text-slate-400">Ngày tạo</p>
+                      <p className="mt-1 font-semibold text-slate-700">{formatDateTime(order.createdAt)}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="mb-2 block text-xs font-medium text-slate-400">
+                      Trạng thái {isEdited ? "(chưa lưu)" : ""}
+                    </label>
+                    <select
+                      value={currentStatus}
+                      onChange={(e) => {
+                        const nextStatus = e.target.value as OrderStatus;
+
+                        setEditedStatuses((prev) => {
+                          if (nextStatus === order.status) {
+                            const cloned = { ...prev };
+                            delete cloned[order.id];
+                            return cloned;
+                          }
+
+                          return {
+                            ...prev,
+                            [order.id]: nextStatus,
+                          };
+                        });
+                      }}
+                      className={`h-11 w-full rounded-xl border px-3 text-sm font-semibold outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 ${
+                        isEdited
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                          : "border-slate-200 bg-white text-slate-700"
+                      }`}
+                    >
+                      {editableStatusOptions.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </article>
+              );
+            })}
+
+            {!isLoading && data.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+                Không có đơn hàng phù hợp.
+              </div>
+            )}
+          </div>
+
+          <div className="hidden overflow-hidden rounded-xl border border-slate-100 md:block">
             <table className="w-full text-sm">
               <thead className="bg-white text-slate-500">
                 <tr className="border-b border-slate-100">
@@ -536,14 +564,14 @@ export default function AdminOrdersPage() {
             </table>
           </div>
 
-          <div className="mt-5 flex items-center justify-between">
+          <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-slate-500">
               Hiển thị{" "}
               {filteredOrders.length === 0 ? 0 : (page - 1) * pageSize + 1} đến{" "}
-              {Math.min(page * pageSize, filteredOrders.length)} của 256 đơn hàng
+              {Math.min(page * pageSize, filteredOrders.length)} của {filteredOrders.length} đơn hàng
             </p>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2 md:justify-end">
               <button
                 disabled={page === 1}
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
@@ -552,7 +580,10 @@ export default function AdminOrdersPage() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
 
-              {[1, 2, 3, 4, 5].map((item) => (
+              {Array.from({ length: Math.min(totalPages, 5) }).map((_, index) => {
+                const item = index + 1;
+
+                return (
                 <button
                   key={item}
                   onClick={() => setPage(item)}
@@ -564,7 +595,8 @@ export default function AdminOrdersPage() {
                 >
                   {item}
                 </button>
-              ))}
+                );
+              })}
 
               <button
                 disabled={page === totalPages}
@@ -582,11 +614,8 @@ export default function AdminOrdersPage() {
 
       <TransferImageModal
         order={selectedOrder}
-        mode={modalMode}
         previewImage={previewImage}
         onClose={handleCloseModal}
-        onFileChange={handleFileChange}
-        onSave={handleSaveImage}
       />
     </>
   );

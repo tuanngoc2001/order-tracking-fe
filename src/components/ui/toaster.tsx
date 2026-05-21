@@ -26,8 +26,8 @@ export function Toaster() {
               <div
                 className={
                   isDestructive
-                    ? "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-100 text-rose-600"
-                    : "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600"
+                    ? "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-200"
+                    : "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-900/45 dark:text-emerald-200"
                 }
               >
                 <Icon className="h-5 w-5" />

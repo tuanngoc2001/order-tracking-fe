@@ -29,9 +29,9 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-emerald-100 bg-white/95 text-slate-900",
+        default: "border-emerald-100 bg-white/95 text-slate-900 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-50",
         destructive:
-          "destructive group border-rose-200 bg-rose-50 text-rose-950",
+          "destructive group border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900/60 dark:bg-rose-950/90 dark:text-rose-50",
       },
     },
     defaultVariants: {
@@ -77,7 +77,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-3 top-3 rounded-md p-1 text-slate-400 opacity-70 transition hover:bg-slate-100 hover:text-slate-700 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-sky-200 group-hover:opacity-100 group-[.destructive]:text-rose-500 group-[.destructive]:hover:bg-rose-100 group-[.destructive]:hover:text-rose-700",
+      "absolute right-3 top-3 rounded-md p-1 text-slate-400 opacity-70 transition hover:bg-slate-100 hover:text-slate-700 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-sky-200 group-hover:opacity-100 dark:hover:bg-slate-800 dark:hover:text-slate-100 group-[.destructive]:text-rose-500 group-[.destructive]:hover:bg-rose-100 group-[.destructive]:hover:text-rose-700 dark:group-[.destructive]:hover:bg-rose-900/60 dark:group-[.destructive]:hover:text-rose-100",
       className
     )}
     toast-close=""
@@ -94,7 +94,7 @@ const ToastTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Title
     ref={ref}
-    className={cn("text-sm font-bold leading-5", className)}
+    className={cn("text-sm font-bold leading-5 text-slate-900 dark:text-slate-50 group-[.destructive]:text-rose-950 dark:group-[.destructive]:text-rose-50", className)}
     {...props}
   />
 ))
@@ -106,7 +106,7 @@ const ToastDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Description
     ref={ref}
-    className={cn("text-sm leading-5 text-slate-500 group-[.destructive]:text-rose-700", className)}
+    className={cn("text-sm leading-5 text-slate-600 dark:text-slate-300 group-[.destructive]:text-rose-700 dark:group-[.destructive]:text-rose-200", className)}
     {...props}
   />
 ))

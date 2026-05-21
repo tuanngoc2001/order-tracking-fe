@@ -41,28 +41,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { UserCoinBalanceLabel, WalletWithdrawDialog } from "@/components/wallet-withdraw-dialog";
 import { getAdminDashboard } from "@/lib/api-client";
 
-type AvatarItem = {
-  id: string;
-  imageUrl: string;
-  description: string;
-  imageHint: string;
-};
-
-const PLACEHOLDER_IMAGES: AvatarItem[] = [
-  {
-    id: "avatar-1",
-    imageUrl: "https://i.pravatar.cc/100?img=12",
-    description: "User avatar",
-    imageHint: "user avatar",
-  },
-  {
-    id: "avatar-admin",
-    imageUrl: "https://i.pravatar.cc/100?img=15",
-    description: "Admin avatar",
-    imageHint: "admin avatar",
-  },
-];
-
 type NotificationItem = {
   id: string;
   title: string;
@@ -99,14 +77,14 @@ export function AppLogo() {
   return (
     <Link
       href={isAdmin ? "/admin/dashboard" : "/user/home"}
-      className="flex items-center gap-3"
+      className="flex min-w-0 items-center gap-2 md:gap-3"
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-sky-50">
-        <PackageCheck className="h-5 w-5 text-sky-500" />
+      <div className="brand-logo-mark flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 md:h-10 md:w-10">
+        <PackageCheck className="h-4 w-4 text-sky-500 md:h-5 md:w-5" />
       </div>
 
-      <div className="flex flex-col leading-none">
-        <span className="text-sm font-bold tracking-tight text-sky-600 md:text-lg">
+      <div className="flex min-w-0 flex-col leading-none">
+        <span className="brand-logo-text truncate text-[13px] font-bold tracking-tight sm:text-sm md:text-lg">
           QUANLYVANDON
         </span>
         <span className="hidden text-[11px] text-slate-400 md:block">
@@ -267,13 +245,11 @@ export function AppHeader() {
   const session = getAuthSession();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
-  const getAvatar = (id: string) =>
-    PLACEHOLDER_IMAGES.find((img) => img.id === id);
-
-  const userAvatarId = isUser ? "avatar-1" : "avatar-admin";
   const userName = session?.name ?? (isUser ? "User" : "Admin");
   const userRole = session?.role === "admin" ? "Admin" : "User";
-  const avatar = getAvatar(userAvatarId);
+  const avatarUrl = isAdmin
+    ? "/images/admin-avatar.png"
+    : `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(userName)}`;
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -300,12 +276,12 @@ export function AppHeader() {
   }, [isAdmin]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-slate-200 bg-white/95 px-3 backdrop-blur md:gap-3 md:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-1.5 border-b border-slate-200 bg-white/95 px-2 backdrop-blur sm:gap-2 sm:px-3 md:h-16 md:gap-3 md:px-6">
       <Button
         variant="outline"
         size="icon"
         onClick={toggleSidebar}
-        className="h-10 w-10 shrink-0 rounded-xl border-slate-200 bg-white md:rounded-lg"
+        className="h-9 w-9 shrink-0 rounded-xl border-slate-200 bg-white md:h-10 md:w-10 md:rounded-lg"
       >
         <Menu className="h-4 w-4" />
       </Button>
@@ -327,8 +303,8 @@ export function AppHeader() {
         </div>
       </div>
 
-      <div className="ml-auto flex shrink-0 items-center gap-1.5 md:gap-3">
-        <ThemeToggle variant="inline" className="shrink-0 rounded-full" />
+      <div className="ml-auto flex shrink-0 items-center gap-1 md:gap-3">
+        <ThemeToggle variant="inline" className="h-9 w-9 shrink-0 rounded-full md:h-10 md:w-10" />
 
         {isAdmin && (
           <DropdownMenu>
@@ -382,15 +358,9 @@ export function AppHeader() {
           </div>
         )}
 
-        <div className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-1.5 md:h-auto md:gap-3 md:px-2 md:py-1.5">
-          <Avatar className="h-8 w-8 md:h-9 md:w-9">
-            {avatar && (
-              <AvatarImage
-                src={avatar.imageUrl}
-                alt={avatar.description}
-                data-ai-hint={avatar.imageHint}
-              />
-            )}
+        <div className="flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-1 md:h-auto md:gap-3 md:px-2 md:py-1.5">
+          <Avatar className="h-7 w-7 md:h-9 md:w-9">
+            <AvatarImage src={avatarUrl} alt={userName} className={isAdmin ? "object-cover" : undefined} />
             <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
           </Avatar>
 
@@ -433,31 +403,31 @@ export function MobileBottomNav() {
         { href: "/admin/orders", label: "Đơn hàng", icon: ShoppingCart },
         { href: "/admin/users", label: "Users", icon: Users },
         {
-          label: "Menu",
-          icon: Globe,
-          action: toggleSidebar,
-          active: pathname.startsWith("/admin/mmo") || pathname.startsWith("/admin/export") || pathname.startsWith("/admin/stats"),
+          href: "/admin/stats",
+          label: "Thống kê",
+          icon: BarChart2,
+          active: pathname.startsWith("/admin/stats"),
         },
       ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.6rem)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur sm:px-3 md:hidden">
       <div
-        className="grid gap-1.5 rounded-2xl bg-slate-50/90 p-1.5"
+        className="grid gap-1 rounded-2xl bg-slate-50/90 p-1.5 sm:gap-1.5"
         style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
       >
         {items.map((item) => {
           const active = item.active ?? (item.href ? pathname === item.href : false);
           const content = (
             <div
-              className={`flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-center transition ${
+              className={`flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-center transition sm:min-h-[58px] sm:px-2 ${
                 active
                   ? "bg-sky-500 text-white shadow-sm"
                   : "text-slate-500 hover:bg-white hover:text-sky-600"
               }`}
             >
               <item.icon className="h-4 w-4" />
-              <span className="text-[11px] font-semibold leading-none">{item.label}</span>
+              <span className="max-w-full truncate text-[10px] font-semibold leading-none sm:text-[11px]">{item.label}</span>
             </div>
           );
 

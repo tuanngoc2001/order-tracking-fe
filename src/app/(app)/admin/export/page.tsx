@@ -44,6 +44,37 @@ function formatDateTime(value: string) {
   });
 }
 
+function parseDisplayDate(value: string) {
+  const [datePart] = value.split(",");
+  const [day, month, year] = datePart.trim().split("/");
+  return new Date(Number(year), Number(month) - 1, Number(day));
+}
+
+function formatDateRange(rows: ExportRow[]) {
+  if (rows.length === 0) return "Không có dữ liệu";
+
+  const dates = rows
+    .map((row) => parseDisplayDate(row.createdAt))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  if (dates.length === 0) return "Không có dữ liệu";
+
+  const formatter = new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  return `${formatter.format(dates[0])} - ${formatter.format(dates[dates.length - 1])}`;
+}
+
+function estimateExportSize(rows: ExportRow[]) {
+  const bytes = new Blob([JSON.stringify(rows)]).size;
+  if (bytes < 1024) return `${bytes} B`;
+  return `${Math.ceil(bytes / 1024)} KB`;
+}
+
 const fieldOptions = [
   { key: "account", label: "Tài khoản" },
   { key: "password", label: "Mật khẩu" },
@@ -197,6 +228,8 @@ export default function AdminExportPage() {
     const start = (page - 1) * pageSize;
     return filteredRows.slice(start, start + pageSize);
   }, [filteredRows, page, pageSize]);
+  const exportDateRange = useMemo(() => formatDateRange(filteredRows), [filteredRows]);
+  const estimatedSize = useMemo(() => estimateExportSize(filteredRows), [filteredRows]);
 
   const handleReset = () => {
     setDataType("all");
@@ -207,15 +240,41 @@ export default function AdminExportPage() {
   };
 
   const handleExport = async () => {
-    await runAction(() => {
-      console.log("EXPORT_DATA", {
-        dataType,
-        status,
-        platform,
-        format,
-        selectedFields,
-        rows: filteredRows,
-      });
+    await runAction(async () => {
+      const selectedKeys = fieldOptions.filter((field) => selectedFields[field.key]).map((field) => field.key);
+      const selectedLabels = new Map(fieldOptions.map((field) => [field.key, field.label]));
+      const exportRows = filteredRows.map((row) =>
+        selectedKeys.reduce<Record<string, string | number>>((acc, key) => {
+          acc[selectedLabels.get(key) ?? key] = row[key as keyof ExportRow] ?? "";
+          return acc;
+        }, {})
+      );
+
+      if (format === "csv" || format === "sheets") {
+        const header = selectedKeys.map((key) => selectedLabels.get(key) ?? key);
+        const lines = [
+          header.join(","),
+          ...exportRows.map((row) =>
+            header
+              .map((label) => `"${String(row[label] ?? "").replace(/"/g, '""')}"`)
+              .join(",")
+          ),
+        ];
+        const blob = new Blob(["\ufeff", lines.join("\n")], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "mmo-export.csv";
+        link.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      const XLSX = await import("xlsx");
+      const worksheet = XLSX.utils.json_to_sheet(exportRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "MMO Data");
+      XLSX.writeFile(workbook, "mmo-export.xlsx");
     }, {
       loadingMessage: "Đang xuất dữ liệu...",
       successTitle: "Xuất dữ liệu thành công",
@@ -316,9 +375,7 @@ export default function AdminExportPage() {
               Khoảng thời gian tạo
             </label>
             <button className="flex h-11 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700">
-              <span>01/06/2024</span>
-              <span className="text-slate-400">→</span>
-              <span>23/06/2024</span>
+              <span>{exportDateRange}</span>
               <CalendarDays className="h-4 w-4 text-slate-500" />
             </button>
           </div>
@@ -408,7 +465,7 @@ export default function AdminExportPage() {
 
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500">Dung lượng ước tính</span>
-                  <span className="font-bold text-slate-800">~ 45 KB</span>
+                  <span className="font-bold text-slate-800">~ {estimatedSize}</span>
                 </div>
               </div>
             </div>
@@ -433,12 +490,12 @@ export default function AdminExportPage() {
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5">
           <h2 className="text-sm font-bold uppercase text-slate-700">
             3. Xem trước dữ liệu (hiển thị 10 bản ghi đầu tiên)
           </h2>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 md:gap-4">
             <span className="text-sm text-slate-500">
               Hiển thị {Math.min(pageSize, filteredRows.length)}/{filteredRows.length} bản ghi
             </span>
@@ -448,7 +505,47 @@ export default function AdminExportPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="space-y-3 p-4 md:hidden">
+          {pagedRows.map((row, index) => (
+            <article key={row.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs text-slate-400">#{(page - 1) * pageSize + index + 1}</p>
+                  <h3 className="mt-1 truncate text-base font-bold text-slate-900">{row.account}</h3>
+                  <p className="mt-1 truncate text-xs text-slate-400">{row.email}</p>
+                </div>
+                <StatusBadge status={row.status} />
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400">Proxy</p>
+                  <p className="mt-1 truncate font-semibold text-slate-700">{row.proxy}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400">Ngày tạo</p>
+                  <p className="mt-1 truncate font-semibold text-slate-700">{row.createdAt}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400">Đã khóa</p>
+                  <p className="mt-1 truncate font-semibold text-slate-700">{row.lockedDays}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400">Ghi chú</p>
+                  <p className="mt-1 truncate font-semibold text-slate-700">{row.note}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+
+          {!isLoading && pagedRows.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+              Không có dữ liệu phù hợp.
+            </div>
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[1100px] text-sm">
             <thead className="bg-white text-slate-500">
               <tr className="border-b border-slate-100">
@@ -504,8 +601,8 @@ export default function AdminExportPage() {
           </table>
         </div>
 
-        <div className="flex items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-3 text-sm text-slate-500">
+        <div className="flex flex-col gap-3 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
             <span>Hiển thị</span>
             <select
               value={pageSize}
@@ -521,7 +618,7 @@ export default function AdminExportPage() {
             <span>trên {filteredRows.length} kết quả</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2 md:justify-end">
             <button
               disabled={page === 1}
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}

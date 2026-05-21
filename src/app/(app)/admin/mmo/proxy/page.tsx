@@ -10,6 +10,7 @@ import {
   EyeOff,
   Filter,
   Lock,
+  LockOpen,
   Pencil,
   Plus,
   RefreshCw,
@@ -20,6 +21,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppAction } from "@/components/app-action-provider";
+import { useMessageDialog } from "@/components/message-dialog-provider";
+import DatePicker from "@/components/ui/date-picker";
 import {
   createMmoProxy,
   deleteMmoProxy,
@@ -27,6 +30,7 @@ import {
   invalidateApiCache,
   updateMmoProxy,
   updateMmoProxyStatus,
+  ApiError,
   type MmoProxyResponse,
 } from "@/lib/api-client";
 
@@ -129,6 +133,33 @@ const initialForm: CreateProxyForm = {
 
 function getCountryCode(country: string) {
   return countryCodeByName[country] ?? country.slice(0, 2).toUpperCase();
+}
+
+function parseProxyDate(value: string) {
+  if (!value || value === "-") return undefined;
+
+  const normalized = value.trim();
+  const ddmmyyyy = normalized.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ddmmyyyy) {
+    return new Date(Number(ddmmyyyy[3]), Number(ddmmyyyy[2]) - 1, Number(ddmmyyyy[1]));
+  }
+
+  const yyyymmdd = normalized.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (yyyymmdd) {
+    return new Date(Number(yyyymmdd[1]), Number(yyyymmdd[2]) - 1, Number(yyyymmdd[3]));
+  }
+
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function formatProxyDate(date?: Date) {
+  if (!date) return "";
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
 }
 
 function StatusDot({ className }: { className: string }) {
@@ -362,11 +393,10 @@ function AddProxyModal({
 
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">Hết hạn</label>
-            <input
-              value={form.expiredDate}
-              onChange={(event) => onChange("expiredDate", event.target.value)}
-              placeholder="Ví dụ: 25/06/2024"
-              className={inputClass}
+            <DatePicker
+              value={parseProxyDate(form.expiredDate)}
+              onChange={(date) => onChange("expiredDate", formatProxyDate(date))}
+              placeholder="Chọn ngày hết hạn"
             />
           </div>
 
@@ -404,7 +434,8 @@ function AddProxyModal({
 
 export default function AdminMMOProxyPage() {
   const { toast } = useToast();
-  const { isBlocking, runAction } = useAppAction();
+  const { showErrorDialog } = useMessageDialog();
+  const { isBlocking, beginBlocking, runAction } = useAppAction();
   const [proxies, setProxies] = useState<ProxyItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -579,11 +610,13 @@ export default function AdminMMOProxyPage() {
   };
 
   const handleAddProxy = async () => {
-    if (!form.ip.trim() || !form.port.trim() || !form.username.trim()) {
+    if (!form.ip.trim() || !form.port.trim() || !form.username.trim() || isBlocking) {
       return;
     }
 
-    await runAction(async () => {
+    const release = beginBlocking("Đang thêm proxy...");
+
+    try {
       const country = form.country.trim();
       const newItem = await createMmoProxy({
         ip: form.ip.trim(),
@@ -602,20 +635,36 @@ export default function AdminMMOProxyPage() {
       setOpenAddModal(false);
       setForm(initialForm);
       setCurrentPage(1);
-    }, {
-      loadingMessage: "Đang thêm proxy...",
-      successTitle: "Thêm proxy thành công",
-      successDescription: "Proxy mới đã được thêm vào danh sách.",
-    });
+      toast({
+        title: "Thêm proxy thành công",
+        description: "Proxy mới đã được thêm vào danh sách.",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message.replace(/[!.]+$/, "") : "Tài khoản này đã tồn tại";
+
+      if (error instanceof ApiError && (error.code === "msg_1" || error.status === 409)) {
+        showErrorDialog({
+          message: message || "Tài khoản này đã tồn tại",
+          code: error.code ?? "msg_1",
+        });
+        return;
+      }
+
+      showErrorDialog(message || "Đã có lỗi xảy ra");
+    } finally {
+      release();
+    }
   };
 
-  const handleLockProxy = async (id: number) => {
+  const handleToggleProxyStatus = async (proxy: ProxyItem) => {
+    const nextStatus = proxy.status === "locked" ? "active" : "locked";
+
     await runAction(async () => {
-      const updated = await updateMmoProxyStatus(id, "locked");
-      setProxies((prev) => prev.map((item) => (item.id === id ? mapApiProxy(updated) : item)));
+      const updated = await updateMmoProxyStatus(proxy.id, nextStatus);
+      setProxies((prev) => prev.map((item) => (item.id === proxy.id ? mapApiProxy(updated) : item)));
     }, {
-      loadingMessage: "Đang khóa proxy...",
-      successTitle: "Đã khóa proxy",
+      loadingMessage: proxy.status === "locked" ? "Đang mở khóa proxy..." : "Đang khóa proxy...",
+      successTitle: proxy.status === "locked" ? "Đã mở khóa proxy" : "Đã khóa proxy",
       successDescription: "Trạng thái proxy đã được cập nhật trong database.",
     });
   };
@@ -679,7 +728,7 @@ export default function AdminMMOProxyPage() {
     <>
       <div className="space-y-6">
         <div>
-          <h1 className="text-[30px] font-bold leading-tight text-slate-900">
+          <h1 className="text-2xl font-bold leading-tight text-slate-900 md:text-[30px]">
             MMO Accounts - Proxy
           </h1>
           <p className="mt-2 text-sm font-medium text-slate-500">
@@ -687,17 +736,17 @@ export default function AdminMMOProxyPage() {
           </p>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-stretch md:justify-end">
           <button
             onClick={() => setOpenAddModal(true)}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-sky-500 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-sky-500 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600 md:h-10 md:w-auto md:rounded-lg"
           >
             <Plus className="h-4 w-4" />
             Thêm proxy
           </button>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-5">
           <SummaryCard
             title="Tổng proxy"
             value={String(allStats.total)}
@@ -754,7 +803,7 @@ export default function AdminMMOProxyPage() {
           />
         </div>
 
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-col gap-3 md:gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-[1.5fr_0.9fr_0.8fr_0.9fr_0.55fr]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -832,7 +881,80 @@ export default function AdminMMOProxyPage() {
         </div>
 
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
+          <div className="border-b border-slate-100 px-4 py-3 md:hidden">
+            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+              <span>{filteredProxies.length} proxy</span>
+              <span>Trang {currentPage}/{totalPages}</span>
+            </div>
+          </div>
+
+          <div className="space-y-3 p-4 md:hidden">
+            {pagedProxies.map((item) => (
+              <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="truncate font-mono text-base font-bold text-slate-900">{item.ip}:{item.port}</h2>
+                    <div className="mt-2 flex items-center gap-2">
+                      <TypeBadge type={item.type} />
+                      <CountryCell country={item.country} countryCode={item.countryCode} />
+                    </div>
+                  </div>
+                  <StatusBadge status={item.status} />
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs text-slate-400">Tên đăng nhập</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <p className="min-w-0 truncate font-semibold text-slate-700">{item.username}</p>
+                      <button onClick={() => handleCopy(item.username, "Tên đăng nhập")} className="shrink-0 text-slate-400">
+                        <Clipboard className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs text-slate-400">Mật khẩu</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <p className="min-w-0 truncate font-semibold tracking-[2px] text-slate-700">
+                        {visiblePasswords[item.id] ? item.password : "••••••••"}
+                      </p>
+                      <button onClick={() => togglePassword(item.id)} className="shrink-0 text-slate-400">
+                        {visiblePasswords[item.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs text-slate-400">Hết hạn</p>
+                    <p className="mt-1 truncate font-semibold text-slate-700">{item.expiredDate}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs text-slate-400">Ghi chú</p>
+                    <p className="mt-1 truncate font-semibold text-slate-700">{item.note}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-center justify-end gap-3 border-t border-slate-100 pt-3">
+                  <button onClick={() => handleOpenEditProxy(item)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => handleToggleProxyStatus(item)} disabled={isBlocking} className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 disabled:opacity-50">
+                    {item.status === "locked" ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                  </button>
+                  <button onClick={() => handleDeleteProxy(item.id)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </article>
+            ))}
+
+            {!isLoading && pagedProxies.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+                Không có dữ liệu phù hợp.
+              </div>
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-[1080px] text-sm">
               <thead className="border-b border-slate-100 bg-white text-left text-xs font-semibold text-slate-500">
                 <tr>
@@ -852,9 +974,9 @@ export default function AdminMMOProxyPage() {
                 {pagedProxies.map((item) => (
                   <tr
                     key={item.id}
-                    className="border-b border-slate-100 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50/80 last:border-none"
+                    className="border-b border-slate-100 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50/80 last:border-none dark:text-slate-200 dark:hover:bg-slate-800/80"
                   >
-                    <td className="px-3 py-4 font-mono text-slate-700">
+                    <td className="px-3 py-4 font-mono text-slate-700 dark:text-slate-50">
                       {item.ip}:{item.port}
                     </td>
 
@@ -862,11 +984,11 @@ export default function AdminMMOProxyPage() {
                       <TypeBadge type={item.type} />
                     </td>
 
-                    <td className="px-3 py-4 text-slate-600">
+                    <td className="px-3 py-4 text-slate-600 dark:text-slate-300">
                       <CountryCell country={item.country} countryCode={item.countryCode} />
                     </td>
 
-                    <td className="px-3 py-4 text-slate-600">
+                    <td className="px-3 py-4 text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-2">
                         <span>{item.username}</span>
                         <button
@@ -881,7 +1003,7 @@ export default function AdminMMOProxyPage() {
 
                     <td className="px-3 py-4">
                       <div className="flex items-center gap-4">
-                        <span className="font-bold tracking-[3px] text-slate-900">
+                        <span className="font-bold tracking-[3px] text-slate-900 dark:text-slate-50">
                           {visiblePasswords[item.id] ? item.password : "••••••••"}
                         </span>
                         <button
@@ -909,9 +1031,9 @@ export default function AdminMMOProxyPage() {
                       <StatusBadge status={item.status} />
                     </td>
 
-                    <td className="px-3 py-4 text-slate-600">{item.expiredDate}</td>
+                    <td className="px-3 py-4 text-slate-600 dark:text-slate-300">{item.expiredDate}</td>
 
-                    <td className="px-3 py-4 text-slate-600">{item.note}</td>
+                    <td className="px-3 py-4 text-slate-600 dark:text-slate-300">{item.note}</td>
 
                     <td className="px-3 py-4">
                       <div className="flex items-center justify-center gap-4">
@@ -923,12 +1045,16 @@ export default function AdminMMOProxyPage() {
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleLockProxy(item.id)}
-                          disabled={item.status === "locked" || isBlocking}
+                          onClick={() => handleToggleProxyStatus(item)}
+                          disabled={isBlocking}
                           className="text-sky-500 transition hover:scale-110 hover:text-sky-600 disabled:cursor-not-allowed disabled:opacity-40"
-                          title={item.status === "locked" ? "Proxy đã khóa" : "Khóa proxy"}
+                          title={item.status === "locked" ? "Mở khóa proxy" : "Khóa proxy"}
                         >
-                          <Lock className="h-4 w-4" />
+                          {item.status === "locked" ? (
+                            <LockOpen className="h-4 w-4" />
+                          ) : (
+                            <Lock className="h-4 w-4" />
+                          )}
                         </button>
                         <button
                           onClick={() => handleDeleteProxy(item.id)}
@@ -953,8 +1079,8 @@ export default function AdminMMOProxyPage() {
             </table>
           </div>
 
-          <div className="flex flex-col gap-4 border-t border-slate-100 px-5 py-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-4 text-sm font-medium text-slate-500">
+          <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5">
+            <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-500 md:gap-4">
               <div className="flex items-center gap-2">
                 <span>Hiển thị</span>
                 <select
@@ -970,7 +1096,7 @@ export default function AdminMMOProxyPage() {
               <span>trên {filteredProxies.length} kết quả</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2 md:justify-end">
               <button
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-50 disabled:opacity-50"
                 disabled={currentPage === 1}

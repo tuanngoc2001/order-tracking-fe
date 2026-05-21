@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useRef, useState } from "react";
 import { useAppAction } from "@/components/app-action-provider";
+import { useMessageDialog } from "@/components/message-dialog-provider";
 import { AuthDesktopLayout, AuthFooter } from "@/components/auth/auth-desktop-layout";
 import { register as registerRequest, sendRegisterOtp, verifyRegisterOtp } from "@/lib/api-client";
 import {
@@ -17,6 +18,7 @@ function VerifyOtpPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { runAction } = useAppAction();
+  const { showMessageDialog } = useMessageDialog();
   const email = searchParams.get("email") || "";
   const mode = searchParams.get("mode") || "register";
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -78,7 +80,11 @@ function VerifyOtpPageContent() {
             email: response.email,
             token: response.token,
           });
-          router.push("/user/home");
+          showMessageDialog({
+            message: "Đăng ký thành công",
+            code: "msg_2",
+            onConfirm: () => router.push("/user/home"),
+          });
           return;
         }
 
@@ -86,11 +92,6 @@ function VerifyOtpPageContent() {
       },
       {
         loadingMessage: "Đang xác thực OTP...",
-        successTitle: "Xác thực OTP thành công",
-        successDescription:
-          mode === "register"
-            ? "Tài khoản đã được tạo và đăng nhập."
-            : "Tiếp tục đặt lại mật khẩu.",
         errorTitle: "Xác thực OTP thất bại",
       }
     );

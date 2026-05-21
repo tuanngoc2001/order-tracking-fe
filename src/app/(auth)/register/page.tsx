@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Mail, Phone, User, Users } from "lucide-react";
 import { useAppAction } from "@/components/app-action-provider";
+import { useMessageDialog } from "@/components/message-dialog-provider";
 import { AuthDesktopLayout, AuthFooter } from "@/components/auth/auth-desktop-layout";
 import {
   FeatureItem,
@@ -38,6 +39,7 @@ const initialFormData: RegisterFormData = {
 export default function RegisterPage() {
   const router = useRouter();
   const { runAction } = useAppAction();
+  const { showMessageDialog } = useMessageDialog();
   const [formData, setFormData] = useState<RegisterFormData>(initialFormData);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -97,12 +99,14 @@ export default function RegisterPage() {
           referralCode: formData.referralCode.trim() || undefined,
         });
 
-        router.push("/login");
+        showMessageDialog({
+          message: "Đăng ký thành công",
+          code: "msg_2",
+          onConfirm: () => router.push("/login"),
+        });
       },
       {
-        loadingMessage: "Đang gửi OTP...",
-        successTitle: "Đã gửi OTP",
-        successDescription: "Vui lòng xác thực mã OTP để hoàn tất đăng ký.",
+        loadingMessage: "Đang đăng ký...",
         errorTitle: "Đăng ký thất bại",
       }
     );

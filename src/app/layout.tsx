@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from '@/lib/utils';
 import { AppActionProvider } from "@/components/app-action-provider";
+import { MessageDialogProvider } from "@/components/message-dialog-provider";
 
 const inter = Inter({
   subsets: ['vietnamese', 'latin'],
@@ -32,8 +33,10 @@ export default function RootLayout({
           )}
         >
         <AppActionProvider>
-          {children}
-          <Toaster />
+          <MessageDialogProvider>
+            {children}
+            <Toaster />
+          </MessageDialogProvider>
         </AppActionProvider>
       </body>
     </html>

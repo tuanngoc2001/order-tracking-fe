@@ -5,6 +5,7 @@ import {
   Search,
   Eye,
   Lock,
+  Unlock,
   Trash2,
   Plus,
   ChevronLeft,
@@ -36,13 +37,14 @@ type UserItem = {
   role: "staff";
   status: UserStatus;
   createdAt: string;
+  createdAtRaw: string;
   avatar?: string;
 };
 
 const statusOptions = [
   { value: "all", label: "Tất cả trạng thái" },
-  { value: "active", label: "Đang hoạt động" },
-  { value: "locked", label: "Bị khóa" },
+  { value: "active", label: "Đã mở" },
+  { value: "locked", label: "Đã khóa" },
 ];
 
 function formatDate(date?: Date) {
@@ -77,6 +79,7 @@ function mapApiUser(user: AdminUserResponse): UserItem {
     role: "staff",
     status: user.status === "locked" ? "locked" : "active",
     createdAt: formatDateTime(user.createdAt),
+    createdAtRaw: user.createdAt,
   };
 }
 
@@ -111,7 +114,7 @@ function StatCard({
             }`}
           >
             {change}{" "}
-            <span className="font-normal text-slate-400">
+            <span className="hidden">
               so với tháng trước
             </span>
           </p>
@@ -124,11 +127,11 @@ function StatCard({
 function StatusBadge({ status }: { status: UserStatus }) {
   const map = {
     active: {
-      label: "Đang hoạt động",
+      label: "Đã mở",
       className: "bg-emerald-50 text-emerald-600",
     },
     locked: {
-      label: "Bị khóa",
+      label: "Đã khóa",
       className: "bg-rose-50 text-rose-600",
     },
   };
@@ -301,16 +304,34 @@ export default function AdminUsersPage() {
   }, [users, search, status, editedStatuses, createdDate]);
 
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const now = new Date();
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const usersCreatedThisMonth = users.filter((user) => {
+    const createdAt = new Date(user.createdAtRaw);
+    return createdAt >= currentMonthStart && createdAt < nextMonthStart;
+  }).length;
+  const usersCreatedPreviousMonth = users.filter((user) => {
+    const createdAt = new Date(user.createdAtRaw);
+    return createdAt >= previousMonthStart && createdAt < currentMonthStart;
+  }).length;
+  const activeUsers = users.filter((u) => (editedStatuses[u.id] ?? u.status) === "active").length;
+  const lockedUsers = users.filter((u) => (editedStatuses[u.id] ?? u.status) === "locked").length;
+  const newUserDiff = usersCreatedThisMonth - usersCreatedPreviousMonth;
 
   const data = useMemo(() => {
     const start = (page - 1) * pageSize;
     return filteredUsers.slice(start, start + pageSize);
   }, [filteredUsers, page]);
 
-  const handleLockUser = (userId: number) => {
+  const handleToggleUserStatus = (userId: number) => {
+    const currentUser = users.find((user) => user.id === userId);
+    if (!currentUser) return;
+
     setEditedStatuses((prev) => ({
       ...prev,
-      [userId]: "locked",
+      [userId]: (prev[userId] ?? currentUser.status) === "locked" ? "active" : "locked",
     }));
   };
 
@@ -350,10 +371,10 @@ export default function AdminUsersPage() {
 
   return (
     <>
-      <div className="space-y-5">
-        <div className="flex items-start justify-between gap-4">
+      <div className="space-y-4 md:space-y-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <h1 className="text-[28px] font-bold text-slate-900">
+            <h1 className="text-2xl font-bold leading-tight text-slate-900 md:text-[28px]">
               Quản lý người dùng
             </h1>
             <p className="mt-1 text-sm text-slate-400">
@@ -361,27 +382,27 @@ export default function AdminUsersPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="grid grid-cols-2 gap-2 md:flex md:items-center md:gap-3">
             <button
               onClick={handleSaveStatuses}
               disabled={!hasEditedStatus || isBlocking}
-              className="inline-flex h-11 items-center rounded-xl bg-emerald-500 px-5 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-500 px-5 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Save
             </button>
 
-            <button className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-500 px-5 text-sm font-semibold text-white transition hover:bg-sky-600">
+            <button className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-sky-500 px-4 text-sm font-semibold text-white transition hover:bg-sky-600 md:px-5">
               <Plus className="h-4 w-4" />
               Thêm người dùng
             </button>
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
           <StatCard
             title="Tổng người dùng"
             value={String(users.length)}
-            change="+12.5%"
+            change={`+${usersCreatedThisMonth} tài khoản mới`}
             icon={<Users className="h-6 w-6 text-sky-500" />}
             iconClass="bg-sky-50"
           />
@@ -393,15 +414,15 @@ export default function AdminUsersPage() {
                 (u) => (editedStatuses[u.id] ?? u.status) === "active"
               ).length
             )}
-            change="+8.3%"
+            change={`${users.length === 0 ? 0 : Math.round((activeUsers / users.length) * 100)}% tổng người dùng`}
             icon={<UserCheck className="h-6 w-6 text-emerald-500" />}
             iconClass="bg-emerald-50"
           />
 
           <StatCard
             title="Người dùng mới"
-            value="232"
-            change="+15.7%"
+            value={String(usersCreatedThisMonth)}
+            change={`${newUserDiff >= 0 ? "+" : ""}${newUserDiff}`}
             icon={<UserPlus className="h-6 w-6 text-orange-500" />}
             iconClass="bg-orange-50"
           />
@@ -413,14 +434,14 @@ export default function AdminUsersPage() {
                 (u) => (editedStatuses[u.id] ?? u.status) === "locked"
               ).length
             )}
-            change="-6.2%"
+            change={`${users.length === 0 ? 0 : Math.round((lockedUsers / users.length) * 100)}% tổng người dùng`}
             icon={<UserX className="h-6 w-6 text-rose-500" />}
             iconClass="bg-rose-50"
           />
         </div>
 
-        <div className="relative overflow-visible rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-5 grid gap-3 lg:grid-cols-[1.25fr_0.9fr_0.9fr]">
+        <div className="relative overflow-visible rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <div className="mb-4 grid gap-3 md:grid-cols-2 lg:mb-5 lg:grid-cols-[1.25fr_0.9fr_0.9fr]">
             <div className="relative">
               <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
@@ -470,7 +491,80 @@ export default function AdminUsersPage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-slate-100">
+          <div className="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500 md:hidden">
+            <span>{filteredUsers.length} người dùng</span>
+            <span>Trang {page}/{totalPages}</span>
+          </div>
+
+          <div className="space-y-3 md:hidden">
+            {data.map((user) => {
+              const currentStatus = editedStatuses[user.id] ?? user.status;
+              const isEdited = editedStatuses[user.id] !== undefined;
+
+              return (
+                <article key={user.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sm font-bold text-sky-600">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="truncate text-base font-bold text-slate-900">{user.name}</h2>
+                        <p className="mt-1 truncate text-xs text-slate-400">{user.code}</p>
+                      </div>
+                    </div>
+                    <StatusBadge status={currentStatus} />
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-xs text-slate-400">Email</p>
+                      <p className="mt-1 truncate font-semibold text-slate-700">{user.email}</p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-xs text-slate-400">SĐT</p>
+                      <p className="mt-1 truncate font-semibold text-slate-700">{user.phone}</p>
+                    </div>
+                    <div className="col-span-2 rounded-xl bg-slate-50 p-3">
+                      <p className="text-xs text-slate-400">Ngày tạo</p>
+                      <p className="mt-1 font-semibold text-slate-700">{user.createdAt}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                    <span className={`text-xs font-semibold ${isEdited ? "text-emerald-600" : "text-slate-400"}`}>
+                      {isEdited ? "Chưa lưu thay đổi" : "Đã đồng bộ"}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setSelectedUser(user)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => handleToggleUserStatus(user.id)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                        {currentStatus === "locked" ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                      </button>
+                      <button onClick={() => handleDeleteUser(user.id)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+
+            {isLoading && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+                Đang tải dữ liệu...
+              </div>
+            )}
+
+            {!isLoading && data.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+                Không có người dùng phù hợp.
+              </div>
+            )}
+          </div>
+
+          <div className="hidden overflow-hidden rounded-xl border border-slate-100 md:block">
             <table className="w-full text-sm">
               <thead className="bg-white text-slate-500">
                 <tr className="border-b border-slate-100">
@@ -509,7 +603,7 @@ export default function AdminUsersPage() {
                   return (
                     <tr
                       key={user.id}
-                      className="border-b border-slate-100 last:border-none hover:bg-slate-50/70"
+                      className="border-b border-slate-100 last:border-none hover:bg-slate-50/70 dark:hover:bg-slate-800/80"
                     >
                       <td className="px-4 py-4">
                         <input
@@ -569,12 +663,19 @@ export default function AdminUsersPage() {
                           </button>
 
                           <button
-                            onClick={() => handleLockUser(user.id)}
-                            disabled={currentStatus === "locked"}
-                            className="text-amber-500 transition hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
-                            title="Khóa tài khoản"
+                            onClick={() => handleToggleUserStatus(user.id)}
+                            className="text-amber-500 transition hover:text-amber-600"
+                            title={
+                              currentStatus === "locked"
+                                ? "Mở khóa tài khoản"
+                                : "Khóa tài khoản"
+                            }
                           >
-                            <Lock className="h-4 w-4" />
+                            {currentStatus === "locked" ? (
+                              <Unlock className="h-4 w-4" />
+                            ) : (
+                              <Lock className="h-4 w-4" />
+                            )}
                           </button>
 
                           <button
@@ -614,7 +715,7 @@ export default function AdminUsersPage() {
             </table>
           </div>
 
-          <div className="mt-5 flex items-center justify-between">
+          <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-slate-500">
               Hiển thị{" "}
               {filteredUsers.length === 0 ? 0 : (page - 1) * pageSize + 1} đến{" "}
@@ -622,7 +723,7 @@ export default function AdminUsersPage() {
               dùng
             </p>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2 md:justify-end">
               <button
                 disabled={page === 1}
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}

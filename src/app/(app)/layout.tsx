@@ -2,6 +2,7 @@ import {
   AppHeader,
   AppLogo,
   AppNavMenu,
+  MobileBottomNav,
   SidebarLogoutButton,
 } from "@/components/app-shell";
 import { SupportFloatingButtons } from "@/components/support-floating-buttons";
@@ -43,8 +44,9 @@ export default function AppLayout({
 
         <SidebarInset className="bg-[#f8fbff]">
           <AppHeader />
-          <main className="min-w-0 flex-1 px-3 py-4 sm:px-4 md:p-6">{children}</main>
+          <main className="min-w-0 flex-1 px-3 pb-28 pt-4 sm:px-4 md:p-6">{children}</main>
           <SupportFloatingButtons />
+          <MobileBottomNav />
         </SidebarInset>
       </SidebarProvider>
     </AuthGuard>

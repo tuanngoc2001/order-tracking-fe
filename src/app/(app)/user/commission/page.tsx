@@ -180,7 +180,46 @@ export default function UserCommissionPage() {
           <CardDescription>Danh sách hoa hồng phát sinh từ đơn hàng của F1 trực tiếp.</CardDescription>
         </CardHeader>
         <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
-          <div className="overflow-x-auto rounded-xl border">
+          <div className="space-y-3 md:hidden">
+            {(summary?.history ?? []).length > 0 ? (
+              summary!.history.map((item) => {
+                const status = statusMap[item.status] ?? { label: item.status, variant: "outline" as const };
+
+                return (
+                  <article key={`${item.sourceUsername}-${item.trackingCode}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-base font-bold text-slate-900">{item.type}</h3>
+                        <p className="mt-1 truncate text-xs text-slate-400">{item.trackingCode}</p>
+                      </div>
+                      <Badge variant={status.variant}>{status.label}</Badge>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                      <div className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-xs text-slate-400">Số tiền</p>
+                        <p className="mt-1 font-bold text-slate-900">{formatCurrency(item.commissionAmount)}</p>
+                      </div>
+                      <div className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-xs text-slate-400">Từ người dùng</p>
+                        <p className="mt-1 truncate font-semibold text-slate-700">{item.sourceUser || item.sourceUsername}</p>
+                      </div>
+                      <div className="col-span-2 rounded-xl bg-slate-50 p-3">
+                        <p className="text-xs text-slate-400">Ngày tạo</p>
+                        <p className="mt-1 font-semibold text-slate-700">{new Date(item.createdAt).toLocaleString("vi-VN")}</p>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+                Bạn chưa có lịch sử nhận hoa hồng.
+              </div>
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-xl border md:block">
             <Table>
               <TableHeader>
                 <TableRow>

@@ -4,7 +4,8 @@ import { getAuthSession } from "@/lib/auth-client";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/$/, "") ??
-  "https://order-tracking-be-xuh3.onrender.com/api";
+  "http://localhost:8081/api";
+  // "https://order-tracking-be-xuh3.onrender.com/api";
 
 type ApiFetchOptions = RequestInit & {
   auth?: boolean;
@@ -22,10 +23,12 @@ const DEFAULT_TTL_MS = 30_000;
 
 export class ApiError extends Error {
   status: number;
+  code?: string;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -137,7 +140,17 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     : null;
 
   if (!response.ok) {
+    const errorCode =
+      (payload && typeof payload === "object" && "code" in payload && typeof payload.code === "string"
+        ? payload.code
+        : null) ??
+      (payload && typeof payload === "object" && "messageCode" in payload && typeof payload.messageCode === "string"
+        ? payload.messageCode
+        : null);
     const message =
+      (payload && typeof payload === "object" && "msg_1" in payload && typeof payload.msg_1 === "string"
+        ? payload.msg_1
+        : null) ??
       (payload && typeof payload === "object" && "message" in payload && typeof payload.message === "string"
         ? payload.message
         : null) ??
@@ -145,7 +158,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
         ? payload.error
         : null) ??
       "Đã có lỗi xảy ra.";
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, errorCode ?? undefined);
   }
 
   return payload as T;
@@ -318,6 +331,7 @@ export type AdminRecentOrderResponse = {
   totalAmount: number;
   status: "pending" | "processing" | "shipping" | "completed" | "cancelled";
   createdAt: string;
+  proofImageUrl?: string | null;
 };
 
 export type AdminDashboardResponse = {

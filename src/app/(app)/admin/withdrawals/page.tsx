@@ -145,10 +145,10 @@ export default function AdminWithdrawalsPage() {
   }, [search, statusFilter, withdrawals]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Yêu cầu rút tiền</h1>
+          <h1 className="text-2xl font-bold leading-tight text-slate-900 md:text-3xl">Yêu cầu rút tiền</h1>
           <p className="mt-1 text-sm text-slate-500">
             Danh sách các yêu cầu rút tiền do người dùng gửi từ ví hoa hồng.
           </p>
@@ -160,14 +160,14 @@ export default function AdminWithdrawalsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
         <StatCard title="Tổng yêu cầu" value={new Intl.NumberFormat("vi-VN").format(stats.totalRequests)} note="Tất cả yêu cầu trong hệ thống" />
         <StatCard title="Chờ xử lý" value={new Intl.NumberFormat("vi-VN").format(stats.pendingRequests)} note="Cần admin kiểm tra thanh toán" />
         <StatCard title="Tổng tiền chờ rút" value={formatCurrency(stats.totalPending)} note="Tổng giá trị trạng thái chờ xử lý" />
         <StatCard title="Đã duyệt" value={formatCurrency(stats.totalApproved)} note="Tổng giá trị đã được duyệt" />
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -201,7 +201,46 @@ export default function AdminWithdrawalsPage() {
           </div>
         </div>
 
-        <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
+        <div className="mt-5 space-y-3 md:hidden">
+          {filteredWithdrawals.map((item) => (
+            <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="truncate text-base font-bold text-slate-900">{item.fullName || item.username}</h2>
+                  <p className="mt-1 truncate text-xs text-slate-400">@{item.username}</p>
+                </div>
+                <StatusBadge status={item.status} />
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400">Số tiền</p>
+                  <p className="mt-1 font-bold text-slate-900">{formatCurrency(item.amount)}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400">Ngân hàng</p>
+                  <p className="mt-1 truncate font-semibold text-slate-700">{item.bankName}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400">Số tài khoản</p>
+                  <p className="mt-1 truncate font-semibold text-slate-700">{item.bankAccountNumber}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400">Ngày tạo</p>
+                  <p className="mt-1 truncate font-semibold text-slate-700">{formatDate(item.createdAt)}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+
+          {filteredWithdrawals.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+              Chưa có yêu cầu rút tiền phù hợp.
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5 hidden overflow-hidden rounded-xl border border-slate-200 md:block">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">

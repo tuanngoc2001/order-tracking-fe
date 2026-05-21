@@ -241,10 +241,43 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
         <h2 className="mb-4 text-base font-semibold text-slate-900">Đơn hàng mới nhất</h2>
 
-        <div className="overflow-x-auto">
+        <div className="space-y-3 md:hidden">
+          {pagedOrders.map((order) => (
+            <article key={order.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="truncate text-base font-bold text-slate-900">{order.trackingCode}</h3>
+                  <p className="mt-1 truncate text-xs text-slate-400">{order.customerEmail}</p>
+                </div>
+                <StatusBadge status={order.status} />
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400">Khách hàng</p>
+                  <p className="mt-1 truncate font-semibold text-slate-700">{order.customerName}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400">Tổng tiền</p>
+                  <p className="mt-1 truncate font-semibold text-slate-900">
+                    {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(order.totalAmount)}
+                  </p>
+                </div>
+                <div className="col-span-2 rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400">Ngày tạo</p>
+                  <p className="mt-1 font-semibold text-slate-700">
+                    {new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(new Date(order.createdAt))}
+                  </p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-slate-400">

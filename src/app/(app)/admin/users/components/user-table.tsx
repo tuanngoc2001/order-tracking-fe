@@ -12,7 +12,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { UserForManagement } from "@/lib/definitions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 
@@ -46,22 +45,18 @@ export default function UserTable({ users: initialUsers }: UserTableProps) {
     }
   }, [totalPages]);
 
-
-  const getAvatar = (id: string) =>
-    PlaceHolderImages.find((img) => img.id === id);
-
   return (
     <>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Người dùng</TableHead>
+              <TableHead>NgÆ°á»i dÃ¹ng</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>SĐT</TableHead>
-              <TableHead className="text-center">Số đơn</TableHead>
-              <TableHead className="text-right">Lợi nhuận</TableHead>
-              <TableHead>Trạng thái</TableHead>
+              <TableHead>SÄT</TableHead>
+              <TableHead className="text-center">Sá»‘ Ä‘Æ¡n</TableHead>
+              <TableHead className="text-right">Lá»£i nhuáº­n</TableHead>
+              <TableHead>Tráº¡ng thÃ¡i</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -71,9 +66,8 @@ export default function UserTable({ users: initialUsers }: UserTableProps) {
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
                       <AvatarImage
-                        src={getAvatar(user.avatarId)?.imageUrl}
+                        src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(user.name)}`}
                         alt={user.name}
-                        data-ai-hint={getAvatar(user.avatarId)?.imageHint}
                       />
                       <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
@@ -86,7 +80,7 @@ export default function UserTable({ users: initialUsers }: UserTableProps) {
                 <TableCell className="text-right">{formatCurrency(user.profit)}</TableCell>
                 <TableCell>
                     <Badge variant={user.status === 'Active' ? 'default' : 'destructive'}>
-                        {user.status === 'Active' ? 'Hoạt động' : 'Bị cấm'}
+                        {user.status === 'Active' ? 'Hoáº¡t Ä‘á»™ng' : 'Bá»‹ cáº¥m'}
                     </Badge>
                 </TableCell>
               </TableRow>
