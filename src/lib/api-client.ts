@@ -4,8 +4,8 @@ import { getAuthSession } from "@/lib/auth-client";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/$/, "") ??
-  "http://localhost:8081/api";
-  // "https://order-tracking-be-xuh3.onrender.com/api";
+  // "http://localhost:8081/api";
+  "https://order-tracking-be-xuh3.onrender.com/api";
 
 type ApiFetchOptions = RequestInit & {
   auth?: boolean;
