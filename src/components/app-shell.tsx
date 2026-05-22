@@ -28,7 +28,6 @@ import {
   ChevronDown,
   House,
   BarChart2,
-  Settings,
   LayoutDashboard,
   ShoppingCart,
   Users,
@@ -394,9 +393,9 @@ export function MobileBottomNav() {
     ? [
         { href: "/user/home", label: "Trang chủ", icon: House },
         { href: "/user/orders", label: "Đơn hàng", icon: PackageCheck },
+        { href: "/user/mmo", label: "MMO", icon: Globe },
         { href: "/user/commission", label: "Xu", icon: HandCoins },
         { href: "/user/stats", label: "Thống kê", icon: BarChart2 },
-        { href: "/user/profile", label: "Cài đặt", icon: Settings },
       ]
     : [
         { href: "/admin/dashboard", label: "Trang chủ", icon: LayoutDashboard },
